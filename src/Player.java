@@ -30,12 +30,11 @@ public class Player {
 	private boolean playerWon;
 	private int playerWonPosition;
 	
-	/* CHANGE */
 	private JPanel playerLabel;
 	private JLabel playerLabelName;
 	
-	private final Pawn[] pawns;
-	private Pawn pawnSelected = null;
+	private final Archeologist[] archeologists;
+	private Archeologist archeologistSelected = null;
 	
 	private CellBase[] baseCells;
 	
@@ -49,7 +48,7 @@ public class Player {
 	/**
 	 * Creates a new instance of Player
 	 * @param playerName Name of the Player
-	 * @param playerCells Cells where the Player's pawn can move to
+	 * @param playerCells Cells where the Player's archeologist can move to
 	 * @param playerCode Code of the Player
 	 * @param playerColor Color of the Player
 	 * @param launcher Launcher instance used to retrieve some data
@@ -64,11 +63,11 @@ public class Player {
 		
 		this.launcher = launcher;
 		
-		this.pawns = new Pawn[4];
+		this.archeologists = new Archeologist[4];
 		this.baseCells = new CellBase[4];
 		
 		for(int p = 0; p < 4; p++) {
-			this.pawns[p] = new Pawn(this, p, playerColor);
+			this.archeologists[p] = new Archeologist(this, p, playerColor);
 		}
 		
 		this.dice = null;
@@ -93,7 +92,7 @@ public class Player {
 					}
 				}
 				
-				this.removePawnSelected();
+				this.removeArcheologistSelected();
 				
 				if(this.canMove()) {
 					while(!this.playMove()) {
@@ -116,12 +115,12 @@ public class Player {
 	 * @param baseCenter Panel where to show the Base of the Player
 	 */
 	public void setupBase(Dimension cellDimension, JPanel baseCenter) {
-		for(int baseIndex = 0; baseIndex < this.pawns.length; baseIndex++) {
+		for(int baseIndex = 0; baseIndex < this.archeologists.length; baseIndex++) {
 			int cellPositionX = (baseIndex % 2 == 0) ? 0 : cellDimension.width;
 			int cellPositionY = (baseIndex <= 1) ? 0 : cellDimension.height;
 			Point cellPosition = new Point(cellPositionX, cellPositionY);
 
-			this.baseCells[baseIndex] = new CellBase(cellDimension, cellPosition, this.pawns[baseIndex]);
+			this.baseCells[baseIndex] = new CellBase(cellDimension, cellPosition, this.archeologists[baseIndex]);
 			
 			baseCenter.add(this.baseCells[baseIndex]);
 		}
@@ -134,7 +133,7 @@ public class Player {
 	 */
 	public void drawBase() {
 		for(int baseIndex = 0; baseIndex < this.baseCells.length; baseIndex++) {
-			this.baseCells[baseIndex].drawPawn();
+			this.baseCells[baseIndex].drawArcheologist();
 		}
 	}
 	
@@ -174,8 +173,8 @@ public class Player {
 		this.turnPanel.setBorder(turnBorder);
 		this.turnPanel.setBackground(Color.WHITE);
 		
-		this.turnPanel.setSize(labelDimension.height - 20, labelDimension.height - 20);
-		this.turnPanel.setLocation(10, 10);
+		this.turnPanel.setSize(labelDimension.height - 10, labelDimension.height - 10);
+		this.turnPanel.setLocation(5, 5);
 		this.turnPanel.setVisible(true);
 		
 		this.playerLabel.add(this.turnPanel);
@@ -233,7 +232,7 @@ public class Player {
 			this.turnPanel.setBorder(labelBorder);
 			
 			this.deleteDice();
-			this.removePawnSelected();
+			this.removeArcheologistSelected();
 		}
 	}
 	
@@ -282,54 +281,54 @@ public class Player {
 	}
 	
 	/**
-	 * Check whether the Player has selected a Pawn or not
-	 * @return whether the Player has selected a Pawn or not
+	 * Check whether the Player has selected a Archeologist or not
+	 * @return whether the Player has selected a Archeologist or not
 	 */
-	public boolean isPawnSelected() {
-		return pawnSelected != null;
+	public boolean isArcheologistSelected() {
+		return archeologistSelected != null;
 	}
 	
 	/**
-	 * Get the list of the Player's Pawn
-	 * @return List of the Player's Pawn
+	 * Get the list of the Player's Archeologist
+	 * @return List of the Player's Archeologist
 	 */
-	public Pawn[] getPawns() {
-		return this.pawns;
+	public Archeologist[] getArcheologists() {
+		return this.archeologists;
 	}
 	
 	/**
-	 * Get the Pawn that is selected by the Player
-	 * @return Pawn that is selected by the Player
+	 * Get the Archeologist that is selected by the Player
+	 * @return Archeologist that is selected by the Player
 	 */
-	public Pawn getPawnSelected() {
-		return pawnSelected;
+	public Archeologist getArcheologistSelected() {
+		return archeologistSelected;
 	}
 	
 	/**
-	 * Set a Pawn to be selected by the Player
-	 * @param pawnSelected Pawn that is selected by the Player
+	 * Set a Archeologist to be selected by the Player
+	 * @param archeologistSelected Archeologist that is selected by the Player
 	 */
-	public void setPawnSelected(Pawn pawnSelected) {
-		this.pawnSelected = pawnSelected;
+	public void setArcheologistSelected(Archeologist archeologistSelected) {
+		this.archeologistSelected = archeologistSelected;
 	}
 	
 	/**
-	 * Remove the reference to the Pawn that was previously selected
+	 * Remove the reference to the Archeologist that was previously selected
 	 */
-	public void removePawnSelected() {
-		this.pawnSelected = null;
+	public void removeArcheologistSelected() {
+		this.archeologistSelected = null;
 	}
 	
 	/**
-	 * Check whether the Player can make its Pawn to move
-	 * @return whether the Player can make its Pawn to move
+	 * Check whether the Player can make its Archeologist to move
+	 * @return whether the Player can make its Archeologist to move
 	 */
 	public boolean canMove() {
 		if(this.hasDice()) {
 			Dice playerDice = this.getDice();
 			
-			for(Pawn pawn : this.pawns) {
-				if(pawn.canMove(playerDice.getValue())) {
+			for(Archeologist archeologist : this.archeologists) {
+				if(archeologist.canMove(playerDice.getValue())) {
 					return true;
 				}
 			}
@@ -340,17 +339,17 @@ public class Player {
 	
 	/**
 	 * Function used to make a Move
-	 * @return whether the Player has moved one of its Pawns or not
+	 * @return whether the Player has moved one of its Archeologists or not
 	 */
 	public boolean playMove() {
 		if(this.isPlayerTurn()) {
-			if(this.isPawnSelected()) {
+			if(this.isArcheologistSelected()) {
 				if(this.hasDice()) {
-					Pawn selectedPawn = this.getPawnSelected();
+					Archeologist selectedArcheologist = this.getArcheologistSelected();
 					int changePosition = this.getDice().getValue();
 					
-					if(selectedPawn.movePawn(changePosition)) {
-						if(this.hasWon() || (this.getDice().getValue() != 6 && !this.checkKill() && selectedPawn.getPosition() != 56)) {
+					if(selectedArcheologist.moveArcheologist(changePosition)) {
+						if(this.hasWon() || (this.getDice().getValue() != 6 && !this.checkKill() && selectedArcheologist.getPosition() != 56)) {
 							this.setTurn(false);
 						}
 						
@@ -409,8 +408,8 @@ public class Player {
 	public void checkWon() {
 		int counter = 0;
 		
-		for(Pawn pawn : this.pawns) {
-			if(pawn.hasWon()) {
+		for(Archeologist archeologist : this.archeologists) {
+			if(archeologist.hasWon()) {
 				counter++;
 			}
 		}

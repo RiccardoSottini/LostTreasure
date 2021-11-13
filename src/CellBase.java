@@ -1,10 +1,15 @@
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.Point;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.io.IOException;
+import java.io.InputStream;
 
+import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
 import javax.swing.JPanel;
 import javax.swing.border.Border;
 
@@ -14,21 +19,36 @@ import javax.swing.border.Border;
 public class CellBase extends JPanel implements MouseListener {
 	private final Dimension cellDimension;
 	private final Point cellPosition;
-	private final Pawn cellPawn;
+	private final Archeologist cellArcheologist;
+	private ImageIcon cellImage;
 	
 	/**
 	 * Creates a new instance of CellBase
 	 * @param cellDimension Dimension of the Cell
 	 * @param cellPosition Position of the Cell
-	 * @param cellPawn Pawn that is contained in this Cell
+	 * @param cellArcheologist Archeologist that is contained in this Cell
 	 */
-	public CellBase(Dimension cellDimension, Point cellPosition, Pawn cellPawn) {
+	public CellBase(Dimension cellDimension, Point cellPosition, Archeologist cellArcheologist) {
 		this.cellDimension = cellDimension;
 		this.cellPosition = cellPosition;
-		this.cellPawn = cellPawn;
+		this.cellArcheologist = cellArcheologist;
 		
 		this.setupCell();
 		this.addMouseListener(this);
+		
+		try {
+			InputStream stream = getClass().getResourceAsStream("grass.jpg");
+			this.cellImage = new ImageIcon(ImageIO.read(stream));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@Override
+	public void paintComponent(Graphics g) {
+		super.paintComponent(g);
+
+		g.drawImage(cellImage.getImage(), 0, 0, this.getWidth(), this.getHeight(), null);
 	}
 	
 	/**
@@ -39,53 +59,51 @@ public class CellBase extends JPanel implements MouseListener {
 		this.setSize(this.cellDimension);
 		this.setLocation(this.cellPosition);
 		
-		Border cellBorder = BorderFactory.createLineBorder(Color.BLACK, 1);
-		this.setBorder(cellBorder);
-		
-		this.setBackground(Color.decode("#F5F5F5"));
 		this.setOpaque(true);
 		this.setVisible(true);
 	}
 
 	/**
-	 * Function that draw the pawn contained in the Base Cell
+	 * Function that draw the archeologist contained in the Base Cell
 	 */
-	public void drawPawn() {
-		if(this.cellPawn.getPosition() == -1) {
+	public void drawArcheologist() {
+		if(this.cellArcheologist.getPosition() == -1) {
 			this.removeAll();
 			
-			int pawnOffset = 4;
+			int archeologistOffset = 4;
 			
-			int pawnWidth = this.cellDimension.width / 2;
-			int pawnHeight = this.cellDimension.height / 2;
-			Dimension pawnDimension = new Dimension(pawnWidth, pawnHeight);
+			int archeologistWidth = this.cellDimension.width / 2;
+			int archeologistHeight = this.cellDimension.height / 2;
+			Dimension archeologistDimension = new Dimension(archeologistWidth, archeologistHeight);
 			
-			int pawnPositionX = this.cellDimension.width / 4 - (pawnOffset + 1);
-			int pawnPositionY = this.cellDimension.height / 4 - (pawnOffset + 1);
-			Point pawnCoord = new Point(pawnPositionX, pawnPositionX);
+			int archeologistPositionX = this.cellDimension.width / 4 - (archeologistOffset + 1);
+			int archeologistPositionY = this.cellDimension.height / 4 - (archeologistOffset + 1);
+			Point archeologistCoord = new Point(archeologistPositionX, archeologistPositionY);
 			
-			this.cellPawn.drawPawn(pawnDimension, pawnCoord, pawnOffset, this);
+			this.cellArcheologist.drawArcheologist(archeologistDimension, archeologistCoord, archeologistOffset, this);
 			
 			this.repaint();
 		}
 	}
 	
 	/**
-	 * Function used to manage the selection of a Pawn
+	 * Function used to manage the selection of a Archeologist
 	 * @param e MouseEvent object to manage the mouse click
 	 */
 	@Override
 	public void mouseClicked(MouseEvent e) {
-		Player cellPlayer = this.cellPawn.getPlayer();
-		
-		if(cellPlayer.isPlayerTurn()) {
-			if(!cellPlayer.isPawnSelected()) {
-				if(cellPlayer.hasDice()) {
-					Dice playerDice = cellPlayer.getDice();
-					
-					if(playerDice.getValue() == 6) {
-						if(this.cellPawn.getPosition() == -1) {
-							this.cellPawn.setPawnSelected();
+		if(this.cellArcheologist != null) {
+			Player cellPlayer = this.cellArcheologist.getPlayer();
+			
+			if(cellPlayer.isPlayerTurn()) {
+				if(!cellPlayer.isArcheologistSelected()) {
+					if(cellPlayer.hasDice()) {
+						Dice playerDice = cellPlayer.getDice();
+						
+						if(playerDice.getValue() == 6) {
+							if(this.cellArcheologist.getPosition() == -1) {
+								this.cellArcheologist.setArcheologistSelected();
+							}
 						}
 					}
 				}

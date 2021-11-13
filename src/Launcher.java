@@ -1,18 +1,36 @@
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Scanner;
+import java.util.concurrent.ExecutionException;
 import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.Point;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Type;
 
 import javax.imageio.ImageIO;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.converter.MappingJackson2MessageConverter;
+import org.springframework.messaging.converter.StringMessageConverter;
+import org.springframework.messaging.simp.stomp.StompFrameHandler;
+import org.springframework.messaging.simp.stomp.StompHeaders;
+import org.springframework.messaging.simp.stomp.StompSession;
+import org.springframework.messaging.simp.stomp.StompSession.Subscription;
+import org.springframework.messaging.simp.stomp.StompSessionHandler;
+import org.springframework.web.socket.client.WebSocketClient;
+import org.springframework.web.socket.client.standard.StandardWebSocketClient;
+import org.springframework.web.socket.messaging.WebSocketStompClient;
+
+import connection.ConnectionSessionHandler;
 
 /**
  * List of the Cell Colors
@@ -39,10 +57,18 @@ enum CellType {
  * Class used to run the Game
  */
 public class Launcher extends JFrame {
+	@Autowired
+	private WebSocketStompClient connectionClient;
+	
+	@Autowired
+	private StompSession connectionSession;
+	
 	private final char[] playerCodes = {'B', 'R', 'G', 'Y'};
 	
 	private final int MAX_PLAYERS = 4;
 	private final int OPEN_CELLS = 52;
+	private final int WIDTH = 905;
+	private final int HEIGHT = 465;
 
 	private Cell[] openCells;
 	private Cell[][] closeCells;
@@ -53,16 +79,46 @@ public class Launcher extends JFrame {
 	
 	private GameMenu gameMenu;
 	private GameBoard gameBoard;
-	private GameStatus gameStatus;
 	
 	/**
 	 * Creates an instance of the Launcher class
 	 */
 	public Launcher() {	
+		/*try {
+			this.setupConnection("ws://localhost:8080/ws-connect");
+		} catch(Exception e) {
+			System.out.println("Connection error: " + e.getMessage());
+		}*/
+		
 		this.setupFrame();
+		this.centerScreen();
 		
 		this.runMenu();
 		this.runGame();
+	}
+	
+	private void centerScreen() {
+        Dimension dimension = java.awt.Toolkit.getDefaultToolkit().getScreenSize();
+        int x = (int) ((dimension.getWidth() - this.getWidth()) / 2);
+        int y = (int) ((dimension.getHeight() - this.getHeight()) / 2);
+
+        setLocation(x, y);
+    }
+	
+	/**
+	 * Setup the connection to the Server
+	 * @param URL of the Server
+	 */
+	public void setupConnection(String URL) throws InterruptedException, ExecutionException {
+		WebSocketClient client = new StandardWebSocketClient();
+		this.connectionClient = new WebSocketStompClient(client);
+		//this.connectionClient.setMessageConverter(new MappingJackson2MessageConverter());
+		this.connectionClient.setMessageConverter(new StringMessageConverter());
+
+		StompSessionHandler sessionHandler = new ConnectionSessionHandler();
+		this.connectionSession = this.connectionClient.connect(URL, sessionHandler).get();
+
+		//this.connectionSession.send("/app/game/create", "test");
 	}
 	
 	/**
@@ -93,7 +149,7 @@ public class Launcher extends JFrame {
 	 * Function used to display the Menu of the Game 
 	 */
 	public void runMenu() {
-		this.gameMenu = new GameMenu(new Dimension(600, 600));
+		this.gameMenu = new GameMenu(new Dimension(this.WIDTH, this.HEIGHT));
 		this.add(this.gameMenu);
 		
 		this.pack();
@@ -112,14 +168,18 @@ public class Launcher extends JFrame {
 	 */
 	public void runGame() {
 		this.setupGame();
+		
+		
 		this.gameBoard = new GameBoard(this.players, this.openCells, this.closeCells);
 		
-		Dimension statusDimension = new Dimension(200, this.gameBoard.getFrameHeight());
+		/*Dimension statusDimension = new Dimension(200, this.gameBoard.getFrameHeight());
 		Point statusPosition = new Point(this.gameBoard.getFrameWidth(), 0);
-		this.gameStatus = new GameStatus(this.players, statusDimension, statusPosition);
+		this.gameStatus = new GameStatus(this.players, statusDimension, statusPosition);*/
 		
-		this.add(this.gameBoard, BorderLayout.WEST);
-		this.add(this.gameStatus, BorderLayout.EAST);
+		this.add(this.gameBoard, BorderLayout.CENTER);
+		this.gameBoard.setAlignmentX(Component.CENTER_ALIGNMENT);
+		
+		//this.add(this.gameStatus, BorderLayout.EAST);
 		
 		this.pack();
 		this.setVisible(true);
@@ -136,8 +196,6 @@ public class Launcher extends JFrame {
 					player.setLoseLabel();
 				}
 			}
-			
-			this.gameStatus.setFinished();
 		}
 	}
 	
@@ -152,7 +210,6 @@ public class Launcher extends JFrame {
 		
 		try {
 			BufferedImage image = ImageIO.read(getClass().getResource("icon.jpg"));
-			ImageIcon frameIcon = new ImageIcon(image);
 			this.setIconImage(image);
 		} catch (IOException e) {
 		    e.printStackTrace();
@@ -190,7 +247,7 @@ public class Launcher extends JFrame {
 					cellType = CellType.Star;
 				}
 				
-				this.openCells[cellIndex] = new Cell(cellColor, cellType);
+				this.openCells[cellIndex] = new Cell(cellColor, cellType, cellIndex);
 			}
 			
 			for(int c = 0; c < 6; c++) {
@@ -201,7 +258,7 @@ public class Launcher extends JFrame {
 					cellType = CellType.End;
 				}
 				
-				this.closeCells[p][c] = new Cell(cellColor, cellType);
+				this.closeCells[p][c] = new Cell(cellColor, cellType, c);
 			}
 		}
 	}
@@ -236,8 +293,8 @@ public class Launcher extends JFrame {
 		for(int c = 0; c < OPEN_CELLS; c++) {
 			System.out.println("Cell #" + c + ", Color: " + openCells[c].getColor() + ", Type: " + openCells[c].getType());
 			
-			for(String pawnCode : openCells[c].getPawnCodes()) {
-				System.out.println("Pawn Code: " + pawnCode);
+			for(String archeologistCode : openCells[c].getArcheologistCodes()) {
+				System.out.println("Archeologist Code: " + archeologistCode);
 			}
 		}
 		
@@ -247,8 +304,8 @@ public class Launcher extends JFrame {
 			for(int c = 0; c < 6; c++) {
 				System.out.println("Close Cell #" + playerCodes[p] + c + ", Color: " + closeCells[p][c].getColor() + ", Type: " + closeCells[p][c].getType());
 				
-				for(String pawnCode : closeCells[p][c].getPawnCodes()) {
-					System.out.println("Pawn Code: " + pawnCode);
+				for(String archeologistCode : closeCells[p][c].getArcheologistCodes()) {
+					System.out.println("Archeologist Code: " + archeologistCode);
 				}
 			}
 			

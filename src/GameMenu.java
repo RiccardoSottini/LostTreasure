@@ -1,14 +1,21 @@
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.io.IOException;
+import java.io.InputStream;
 
+import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
@@ -32,11 +39,18 @@ public class GameMenu extends JPanel {
 		Color.decode("#E8E557")
 	};
 	
+	private final String[] playerNames = {
+		"blue", "red", "green", "yellow"
+	};
+	
+	private ImageIcon[] playersIcons;
+	
 	private final int MIN_PLAYERS = 2;
 	private final int MAX_PLAYERS = 4;
 	private int nPlayers;
 	
 	private final Dimension menuDimension;
+	private ImageIcon menuImage;
 	
 	private JLabel titleLabel;
 	private JPanel menuCenter;
@@ -58,12 +72,40 @@ public class GameMenu extends JPanel {
 	 * @param menuDimension Dimension of the Menu
 	 */
 	public GameMenu(Dimension menuDimension) {
-		this.menuDimension = menuDimension;
+		this.menuDimension = menuDimension;  
+        
 		this.nPlayers = MIN_PLAYERS;
 		this.hasInput = false;
 		
 		this.setupMenu();
+		this.setupImages();
 	}
+	
+	public void setupImages() {
+		try {
+        	InputStream stream = getClass().getResourceAsStream("menu-background.jpg");
+			this.menuImage = new ImageIcon(ImageIO.read(stream));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+        
+        this.playersIcons = new ImageIcon[4];
+        for(int i = 0; i < 4; i++) {
+        	try {
+            	InputStream stream = getClass().getResourceAsStream("user-" + this.playerNames[i] + ".png");
+            	this.playersIcons[i] = new ImageIcon(ImageIO.read(stream));
+    		} catch (IOException e) {
+    			e.printStackTrace();
+    		}
+        }
+	}
+	
+	@Override
+    public void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        
+        g.drawImage(this.menuImage.getImage(), 0, 0, this.getWidth(), this.getHeight(), null);
+    }
 	
 	/**
 	 * Function that is waiting the user to click on the button "Play"
@@ -112,19 +154,19 @@ public class GameMenu extends JPanel {
 	 * Function that is used to display the title of the Menu
 	 */
 	public void setupTitle() {
-		this.titleLabel = new JLabel("Lost Treasure");
-		this.titleLabel.setFont(new Font("Arial", Font.BOLD, 40));
+		this.titleLabel = new JLabel("Welcome to Lost Treasure");
+		this.titleLabel.setFont(new Font("Algerian", Font.BOLD, 32));
 		
-		int titleWidth = (int) (this.menuDimension.width * 0.5);
+		int titleWidth = (int) (this.menuDimension.width);
 		int titleHeight = 50;
 		this.titleLabel.setSize(titleWidth, titleHeight);
 		
 		int titlePositionX = (this.menuDimension.width - titleWidth) / 2;
-		int titlePositionY = 15;
+		int titlePositionY = 30;
 		this.titleLabel.setLocation(titlePositionX, titlePositionY);
 		
 		this.titleLabel.setHorizontalAlignment(JFormattedTextField.CENTER);
-		this.titleLabel.setForeground(Color.BLACK);
+		this.titleLabel.setForeground(Color.WHITE);
 		
 		this.titleLabel.setVisible(true);
 		this.add(this.titleLabel);
@@ -137,7 +179,7 @@ public class GameMenu extends JPanel {
 		this.menuCenter = new JPanel();
 		this.menuCenter.setLayout(null);
 		
-		int centerWidth = (int) (this.menuDimension.width * 0.5);
+		int centerWidth = (int) (this.menuDimension.width * 0.4);
 		int centerHeight = (int) (this.menuDimension.height * 0.8);
 		this.menuCenter.setSize(centerWidth, centerHeight);
 		
@@ -145,15 +187,11 @@ public class GameMenu extends JPanel {
 		int centerPositionY = (this.menuDimension.height - centerHeight) / 2 + 20;
 		this.menuCenter.setLocation(centerPositionX, centerPositionY);
 		
-		Border cellBorder = BorderFactory.createLineBorder(Color.BLACK, 2);
-		this.menuCenter.setBorder(cellBorder);
-		this.menuCenter.setBackground(Color.decode("#2F6489"));
-		
 		this.setupNumberPanel();
 		this.setupPlayerList();
 		this.setupPlayButton();
 		
-		this.menuCenter.setOpaque(true);
+		this.menuCenter.setOpaque(false);
 		this.menuCenter.setVisible(true);
 		this.add(menuCenter);
 	}
@@ -162,7 +200,15 @@ public class GameMenu extends JPanel {
 	 * Function that is used to display the Panel that contains the input for the number of players
 	 */
 	public void setupNumberPanel() {
-		this.numberPanel = new JPanel();
+		this.numberPanel = new JPanel() {
+			@Override
+			protected void paintComponent(Graphics g) {
+				super.paintComponent(g);
+
+				//g.drawImage(tileImage.getImage(), 0, 0, this.getWidth(), this.getHeight(), null);
+			}
+	    };
+		
 		this.numberPanel.setLayout(null);
 		
 		int panelWidth = (int) this.menuCenter.getWidth() - 40;
@@ -170,10 +216,10 @@ public class GameMenu extends JPanel {
 		this.numberPanel.setSize(panelWidth, panelHeight);
 		this.numberPanel.setLocation(20, 20);
 		
-		Border cellBorder = BorderFactory.createLineBorder(Color.BLACK, 2);
+		Border cellBorder = BorderFactory.createLineBorder(Color.BLACK, 1);
 		this.numberPanel.setBorder(cellBorder);
-		this.numberPanel.setBackground(Color.decode("#EBC436"));
-
+		this.numberPanel.setBackground(Color.decode("#f7ec9c"));
+		
 		this.setupNumberField();
 		this.setupNumberLabel();
 		
@@ -186,8 +232,9 @@ public class GameMenu extends JPanel {
 	 * Function that is used to display the Label that contains the text of the request to input the number of players
 	 */
 	public void setupNumberLabel() {
-		this.numberLabel = new JLabel("Number of Players:");
-		numberLabel.setFont(new Font("Arial", Font.BOLD, 15));
+		this.numberLabel = new JLabel("Players:");
+		this.numberLabel.setFont(new Font("Arial", Font.BOLD, 16));
+		this.numberLabel.setForeground(Color.BLACK);
 		
 		int labelWidth = (this.numberPanel.getWidth() - this.numberField.getWidth()) - 50;
 		int labelHeight = 30;
@@ -248,10 +295,6 @@ public class GameMenu extends JPanel {
 		int listPositionY = this.numberPanel.getHeight() + 40;
 		this.playerList.setLocation(listPositionX, listPositionY);
 		
-		Border cellBorder = BorderFactory.createLineBorder(Color.BLACK, 2);
-		this.playerList.setBorder(cellBorder);
-		this.playerList.setBackground(Color.decode("#B18E56"));
-		
 		this.playerPanels = new JPanel[MAX_PLAYERS];
 		this.playerFields = new JTextField[MAX_PLAYERS];
 		for(int playerIndex = 0; playerIndex < this.playerPanels.length; playerIndex++) {
@@ -260,7 +303,7 @@ public class GameMenu extends JPanel {
 		
 		this.showPlayers();
 		
-		this.playerList.setOpaque(true);
+		this.playerList.setOpaque(false);
 		this.playerList.setVisible(true);
 		this.menuCenter.add(this.playerList);
 	}
@@ -273,17 +316,17 @@ public class GameMenu extends JPanel {
 		JPanel playerPanel = new JPanel();
 		playerPanel.setLayout(null);
 		
-		int panelWidth = this.playerList.getWidth() - 20;
+		int panelWidth = this.playerList.getWidth();
 		int panelHeight = 40;
 		playerPanel.setSize(panelWidth, panelHeight);
 		
-		int panelPositionX = 10;
-		int panelPositionY = ((panelHeight + 5) * playerIndex) + 10;
+		int panelPositionX = 0;
+		int panelPositionY = ((panelHeight + 5) * playerIndex) + 0;
 		playerPanel.setLocation(panelPositionX, panelPositionY);
 		
 		Border cellBorder = BorderFactory.createLineBorder(Color.BLACK, 1);
 		playerPanel.setBorder(cellBorder);
-		playerPanel.setBackground(Color.decode("#EBC436"));
+		playerPanel.setBackground(Color.decode("#f7ec9c"));
 		playerPanel.setVisible(false);
 		
 		this.playerPanels[playerIndex] = playerPanel;
@@ -298,7 +341,14 @@ public class GameMenu extends JPanel {
 	 * @param playerIndex Index of the player
 	 */
 	public void setupPlayerColor(int playerIndex) {
-		JPanel panelColor = new JPanel();
+		JPanel panelColor = new JPanel() {
+			@Override
+			protected void paintComponent(Graphics g) {
+				super.paintComponent(g);
+
+				g.drawImage(playersIcons[playerIndex].getImage(), 0, 0, this.getWidth(), this.getHeight(), null);
+			}
+	    };
 		
 		int panelWidth = this.playerPanels[playerIndex].getHeight() - 14;
 		int panelHeight = this.playerPanels[playerIndex].getHeight() - 14;
@@ -308,10 +358,8 @@ public class GameMenu extends JPanel {
 		int panelPositionY = (this.playerPanels[playerIndex].getHeight() - panelHeight) / 2;
 		panelColor.setLocation(panelPositionX, panelPositionY);
 		
-		Border panelBorder = BorderFactory.createLineBorder(Color.BLACK, 1);
-		panelColor.setBorder(panelBorder);
-		panelColor.setBackground(this.playerColors[playerIndex]);
 		panelColor.setVisible(true);
+		panelColor.setOpaque(false);
 		
 		this.playerPanels[playerIndex].add(panelColor);
 	}
@@ -337,6 +385,8 @@ public class GameMenu extends JPanel {
 		Border fieldBorder = BorderFactory.createLineBorder(Color.BLACK, 1);
 		Border fieldPadding = BorderFactory.createEmptyBorder(2, 6, 2, 6);
 		playerField.setBorder(BorderFactory.createCompoundBorder(fieldBorder, fieldPadding));
+		playerField.setBackground(this.playerColors[playerIndex]);
+		playerField.setForeground(Color.BLACK);
 		
 		this.playerFields[playerIndex] = playerField;
 		this.playerPanels[playerIndex].add(playerField);
@@ -371,13 +421,14 @@ public class GameMenu extends JPanel {
 		int fieldPositionY = this.numberLabel.getHeight() + this.playerList.getHeight() + 80;
 		this.playButton.setLocation(fieldPositionX, fieldPositionY);
 		
-		this.playButton.setFont(new Font("Arial", Font.BOLD, 16));
+		this.playButton.setFont(new Font("Arial", Font.BOLD, 18));
+		this.playButton.setForeground(Color.BLACK);
 		this.playButton.setHorizontalAlignment(JFormattedTextField.CENTER);
 		
-		Border cellBorder = BorderFactory.createLineBorder(Color.BLACK, 2);
+		Border cellBorder = BorderFactory.createLineBorder(Color.BLACK, 1);
 		this.playButton.setBorder(cellBorder);
 		this.playButton.setOpaque(true);
-		this.playButton.setBackground(Color.decode("#EBC436"));
+		this.playButton.setBackground(Color.decode("#f7ec9c"));
 		this.playButton.setFocusPainted(false);
 		
 		this.playButton.setVisible(true);
@@ -397,15 +448,15 @@ public class GameMenu extends JPanel {
 			
 			@Override
 			public void mouseEntered(MouseEvent e) { 
-				Border cellBorder = BorderFactory.createLineBorder(Color.BLACK, 2);
+				Border cellBorder = BorderFactory.createLineBorder(Color.BLACK, 1);
 				playButton.setBorder(cellBorder);
 				
-				playButton.setBackground(Color.decode("#B58E0F"));
+				playButton.setBackground(Color.decode("#d9ca63"));
 			}
 
 			@Override
 			public void mouseExited(MouseEvent e) { 
-				playButton.setBackground(Color.decode("#EBC436"));
+				playButton.setBackground(Color.decode("#f7ec9c"));
 			}
         });
 	}

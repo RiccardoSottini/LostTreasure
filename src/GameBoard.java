@@ -1,11 +1,18 @@
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.GridLayout;
 import java.awt.Point;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.InputStream;
 
+import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -51,6 +58,10 @@ public class GameBoard extends JPanel {
 		{0, 9},		{0, 0},		{9, 0},		{9, 9}
 	};
 	
+	private int[][] labelPositions;
+	private final int labelWidth = 240;
+	private final int labelHeight = 40;
+	
 	private final int nCells = 15;
 	private final int cellWidth = 40;
 	private final int cellHeight = 40;
@@ -58,12 +69,17 @@ public class GameBoard extends JPanel {
 	private final int baseWidth = cellWidth * 6;
 	private final int baseHeight = cellHeight * 6;
 	
-	private final int frameWidth = cellWidth * nCells;
-	private final int frameHeight = cellHeight * nCells;
+	private final int frameWidth = cellWidth * nCells + 200;
+	private final int frameHeight = cellHeight * nCells + 100;
 	
 	private Player[] players;
 	private Cell[] openCells;
 	private Cell[][] closeCells;
+	
+	private final int frameOffsetX = 100;
+	private final int frameOffsetY = 50;
+	
+	private BufferedImage boardImage;
 	
 	/**
 	 * Creates a new instance of GameBoard
@@ -76,7 +92,15 @@ public class GameBoard extends JPanel {
 		this.openCells = openCells;
 		this.closeCells = closeCells;
 		
+		this.labelPositions = new int[][] {
+			{ 100, this.getFrameHeight() - 50 },
+			{ 100, 10 },
+			{ this.getFrameWidth() - this.labelWidth - 100, 10},
+			{ this.getFrameWidth() - this.labelWidth - 100, this.getFrameHeight() - 50}
+		};
+		
 		this.setupBoard();
+		this.setupStatus();
 	}
 	
 	/**
@@ -89,8 +113,8 @@ public class GameBoard extends JPanel {
 		for(int c = 0; c < this.openCells.length; c++) {
 			Dimension cellDimension = new Dimension(this.cellWidth, this.cellHeight);
 			
-			int positionX = openPositions[c][0] * cellWidth;
-			int positionY = openPositions[c][1] * cellHeight;
+			int positionX = frameOffsetX + openPositions[c][0] * cellWidth;
+			int positionY = frameOffsetY + openPositions[c][1] * cellHeight;
 			Point cellPosition = new Point(positionX, positionY);
 			
 			this.openCells[c].setupCell(cellDimension, cellPosition, this);
@@ -101,8 +125,8 @@ public class GameBoard extends JPanel {
 				Dimension cellDimension = new Dimension(this.cellWidth, this.cellHeight);
 				
 				int positionIndex = (p * closeCells[p].length) + c;
-				int positionX = closePositions[positionIndex][0] * cellWidth;
-				int positionY = closePositions[positionIndex][1] * cellHeight;
+				int positionX = frameOffsetX + closePositions[positionIndex][0] * cellWidth;
+				int positionY = frameOffsetY + closePositions[positionIndex][1] * cellHeight;
 				Point cellPosition = new Point(positionX, positionY);
 				
 				this.closeCells[p][c].setupCell(cellDimension, cellPosition, this);
@@ -114,7 +138,57 @@ public class GameBoard extends JPanel {
 			this.add(this.setupBase(baseIndex));
 		}
 		
+		try {
+			InputStream stream = getClass().getResourceAsStream("board.png");
+			this.boardImage = ImageIO.read(stream);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
 		return this;
+	}
+	
+	@Override
+    public void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        
+        g.drawImage(boardImage, 0, 0, this.getWidth(), this.getHeight(), null);
+    }
+	
+	private void setupStatus() {
+		//this.playerList = new JPanel();
+		
+		/*int listWidth = (int)(this.panelSize.width * 0.75);
+		int listHeight = this.players.length * 50;
+		int listOffset = (int)(this.panelSize.width * 0.125);
+		
+		Dimension listSize = new Dimension(listWidth, listHeight);
+		Point listPosition = new Point(listOffset, listOffset);
+		this.playerList.setSize(listSize);
+		this.playerList.setLocation(listPosition);
+		this.playerList.setLayout(null);
+		
+		this.playerList.setOpaque(true);
+		this.playerList.setVisible(true);
+		
+		for(int p = 0; p < this.players.length; p++) {
+			Dimension labelDimension = new Dimension(listWidth, 50);
+			Point labelPosition = new Point(0, p * 50);
+			
+			this.players[p].setupLabel(labelDimension, labelPosition, this);
+		}*/
+		
+		for(int p = 0; p < this.players.length; p++) {
+			Dimension labelDimension = new Dimension(this.labelWidth, this.labelHeight);
+			Point labelPosition = new Point(this.labelPositions[p][0], this.labelPositions[p][1]);
+			
+			this.players[p].setupLabel(labelDimension, labelPosition, this);
+		}
+		
+		//this.players[0].setupLabel(new Dimension(180, 40), new Point(100, 10), this);
+		//this.players[1].setupLabel(new Dimension(180, 40), new Point(300, 10), this);
+		
+		//this.add(this.players[0]);
 	}
 	
 	/**
@@ -123,17 +197,27 @@ public class GameBoard extends JPanel {
 	 * @return Base Panel of a certain Player to be displayed on the Board
 	 */
 	public JPanel setupBase(int baseIndex) {
-		JPanel basePanel = new JPanel();
+		JPanel basePanel = new JPanel() {
+			@Override
+			public void paintComponent(Graphics g) {
+				super.paintComponent(g);
+
+				try {
+					InputStream stream = getClass().getResourceAsStream("base.png");
+					ImageIcon image = new ImageIcon(ImageIO.read(stream));
+					g.drawImage(image.getImage(), 0, 0, this.getWidth(), this.getHeight(), null);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+
+			}
+		};
 		
 		Dimension baseDimension = new Dimension(baseWidth, baseHeight);
 		
-		int positionX = basePositions[baseIndex][0] * cellWidth;
-		int positionY = basePositions[baseIndex][1] * cellHeight;
+		int positionX = frameOffsetX + basePositions[baseIndex][0] * cellWidth;
+		int positionY = frameOffsetY + basePositions[baseIndex][1] * cellHeight;
 		Point basePosition = new Point(positionX, positionY);
-		
-		Border baseBorder = BorderFactory.createLineBorder(this.borderColor, 2);
-		basePanel.setBorder(baseBorder);
-		basePanel.setBackground(colors[baseIndex]);
 		
 		basePanel.setSize(baseDimension);
 		basePanel.setLocation(basePosition);
@@ -154,8 +238,8 @@ public class GameBoard extends JPanel {
 		
 		Dimension centerDimension = new Dimension(baseWidth - cellWidth * 2, baseHeight - cellHeight * 2);
 		
-		int positionX = (basePositions[baseIndex][0] + 1) * cellWidth;
-		int positionY = (basePositions[baseIndex][1] + 1) * cellHeight;
+		int positionX = frameOffsetX + (basePositions[baseIndex][0] + 1) * cellWidth;
+		int positionY = frameOffsetY + (basePositions[baseIndex][1] + 1) * cellHeight;
 		Point centerPosition = new Point(positionX, positionY);
 		
 		Border centerBorder = BorderFactory.createLineBorder(this.borderColor, 3);
@@ -167,11 +251,20 @@ public class GameBoard extends JPanel {
 		baseCenter.setOpaque(true);
 		baseCenter.setVisible(true);
 		
+		Dimension cellDimension = new Dimension(centerDimension.width / 2, centerDimension.height / 2);
+		
 		if(baseIndex < this.players.length) {
 			if(this.players[baseIndex] != null) {
-				Dimension cellDimension = new Dimension(centerDimension.width / 2, centerDimension.height / 2);
-				
 				this.players[baseIndex].setupBase(cellDimension, baseCenter);
+			}
+		} else {
+			for(int index = 0; index < 4; index++) {
+				int cellPositionX = (index % 2 == 0) ? 0 : cellDimension.width;
+				int cellPositionY = (index <= 1) ? 0 : cellDimension.height;
+				Point cellPosition = new Point(cellPositionX, cellPositionY);
+
+				CellBase cellBase = new CellBase(cellDimension, cellPosition, null);
+				baseCenter.add(cellBase);
 			}
 		}
 		
