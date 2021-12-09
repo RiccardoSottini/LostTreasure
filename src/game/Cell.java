@@ -1,3 +1,4 @@
+package game;
 import java.awt.BasicStroke;
 
 import java.awt.Color;
@@ -23,6 +24,8 @@ import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JPanel;
 import javax.swing.border.Border;
+
+import connection.controllers.MoveController;
 
 /**
  * Class that is used to show a single Cell for the Game
@@ -51,6 +54,7 @@ public class Cell extends JPanel implements MouseListener  {
 		{ {1.0, 0.0}, {1.0, 1.0}, {0.0, 0.5} }
 	};
 	
+	private final Launcher launcher;
 	private final ArrayList<Archeologist> archeologists;
 	private final CellColor cellColor;
 	private final CellType cellType;
@@ -69,7 +73,8 @@ public class Cell extends JPanel implements MouseListener  {
 	 * @param cellColor Color of the Cell
 	 * @param cellType Type of the Cell
 	 */
-	public Cell(CellColor cellColor, CellType cellType, int cellIndex) {
+	public Cell(Launcher launcher, CellColor cellColor, CellType cellType, int cellIndex) {
+		this.launcher = launcher;
 		this.archeologists = new ArrayList<Archeologist>();
 		this.cellColor = cellColor;
 		this.cellType = cellType;
@@ -130,7 +135,7 @@ public class Cell extends JPanel implements MouseListener  {
 		}
 		
 		try {
-			InputStream stream = getClass().getResourceAsStream(image_name);
+			InputStream stream = getClass().getResourceAsStream("/" + image_name);
 			this.cellImage = ImageIO.read(stream);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -315,77 +320,6 @@ public class Cell extends JPanel implements MouseListener  {
 			this.drawArcheologists();
 		}
 	}
-	
-	/**
-	 * Select a single archeologist contained in this cell of the Player who is currently playing
-	 */
-	public void selectArcheologist() {
-		for(Archeologist archeologist : this.archeologists) {
-			Player playerArcheologist = archeologist.getPlayer();
-			
-			if(playerArcheologist.isPlayerTurn()) {
-				playerArcheologist.setArcheologistSelected(archeologist);
-				return;
-			}
-		}
-	}
-	
-	/**
-	 * Function that allows the player to kill other Players' archeologists
-	 * @param selectedArcheologist The Archeologist selected by the Player
-	 * @return hasKilled It says whether a archeologist was killed or not
-	 */
-	public boolean killArcheologists(Archeologist selectedArcheologist) {
-		boolean hasKilled = false;
-		
-		if(this.canKill()) {
-			int[] playerArcheologists = new int[4];
-			
-			for(int playerIndex = 0; playerIndex < this.playerCodes.length; playerIndex++) {
-				playerArcheologists[playerIndex] = 0;
-				
-				for(Archeologist comparedArcheologist : this.archeologists) {
-					if(comparedArcheologist.getPlayerCode() == playerCodes[playerIndex]) {
-						playerArcheologists[playerIndex]++;
-					}
-				}
-			}
-			
-			boolean playerKill = true;
-			
-			for(int playerIndex = 0; playerIndex < playerArcheologists.length; playerIndex++) {
-				if(playerArcheologists[playerIndex] > 1) {
-					playerKill = false;
-					break;
-				}
-			}
-			
-			if(playerKill) {
-				for(int p = 0; p < this.archeologists.size(); p++) {
-					Archeologist comparedArcheologist = this.archeologists.get(p);
-					
-					if(comparedArcheologist.getPlayerCode() != selectedArcheologist.getPlayerCode()) {
-						comparedArcheologist.setDead();
-						this.removeArcheologist(comparedArcheologist, false);
-						
-						hasKilled = true;
-					}
-				}
-			
-
-				this.drawArcheologists();
-			}
-		}
-		
-		return hasKilled;
-	}
-	
-	/**
-	 * Returns the archeologists contained by the cell
-	 */
-	public ArrayList<Archeologist> getArcheologists() {
-		return this.archeologists;
-	}
 
 	/**
 	 * Returns the codes of the archeologists contained by the cell
@@ -398,14 +332,6 @@ public class Cell extends JPanel implements MouseListener  {
 		}
 		
 		return archeologistCodes;
-	}
-	
-	/**
-	 * Function that returns whether a player can kill on this cell
-	 * @return returns whether a player can kill on this cell
-	 */
-	public boolean canKill() {
-		return cellType == CellType.Open && cellColor == CellColor.White;
 	}
 	
 	/**
@@ -423,14 +349,18 @@ public class Cell extends JPanel implements MouseListener  {
 	public CellType getType() {
 		return this.cellType;
 	}
-
+	
 	/**
 	 * Function used to manage the selection of a Archeologist
 	 * @param e MouseEvent object to manage the mouse click
 	 */
 	@Override
 	public void mouseClicked(MouseEvent e) {
-		selectArcheologist();
+		int cell_index = this.cellIndex;
+		String cell_type = (this.cellType == CellType.Open || this.cellType == CellType.Star) ? "open" : "close";
+		
+		MoveController moveController = new MoveController(launcher, cell_index, cell_type);
+		moveController.sendMove();
 	}
 
 	@Override

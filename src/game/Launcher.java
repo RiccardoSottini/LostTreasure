@@ -1,4 +1,6 @@
+package game;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.concurrent.ExecutionException;
@@ -31,6 +33,10 @@ import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
 
 import connection.ConnectionSessionHandler;
+import connection.Request;
+import connection.Response;
+import connection.controllers.LoginController;
+import connection.controllers.UpdateController;
 
 /**
  * List of the Cell Colors
@@ -77,22 +83,39 @@ public class Launcher extends JFrame {
 	private Player[] players;
 	private String[] playerNames;
 	
+	private GameLogin gameLogin;
+	private GameDashboard gameDashboard;
 	private GameMenu gameMenu;
 	private GameBoard gameBoard;
+	
+	private String user_token;
+	
+	private String game_token;
+	private int game_size;
+	private ArrayList<String> game_players;
+	private int user_index;
+	
+	private UpdateController updateController;
+	private boolean is_finished = false;
 	
 	/**
 	 * Creates an instance of the Launcher class
 	 */
 	public Launcher() {	
-		/*try {
+		try {
 			this.setupConnection("ws://localhost:8080/ws-connect");
 		} catch(Exception e) {
 			System.out.println("Connection error: " + e.getMessage());
-		}*/
+		}
 		
 		this.setupFrame();
-		this.centerScreen();
 		
+		this.gameLogin = new GameLogin(this, new Dimension(this.WIDTH, this.HEIGHT));
+		this.gameDashboard = new GameDashboard(this, new Dimension(this.WIDTH, this.HEIGHT));
+		this.gameMenu = new GameMenu(this, new Dimension(this.WIDTH, this.HEIGHT));
+		
+		this.runLogin();
+		this.runDashboard();
 		this.runMenu();
 		this.runGame();
 	}
@@ -112,44 +135,42 @@ public class Launcher extends JFrame {
 	public void setupConnection(String URL) throws InterruptedException, ExecutionException {
 		WebSocketClient client = new StandardWebSocketClient();
 		this.connectionClient = new WebSocketStompClient(client);
-		//this.connectionClient.setMessageConverter(new MappingJackson2MessageConverter());
 		this.connectionClient.setMessageConverter(new StringMessageConverter());
 
 		StompSessionHandler sessionHandler = new ConnectionSessionHandler();
 		this.connectionSession = this.connectionClient.connect(URL, sessionHandler).get();
-
-		//this.connectionSession.send("/app/game/create", "test");
 	}
 	
-	/**
-	 * Function that retrieves the number of players that have won
-	 * @return Number of players that have won
-	 */
-	public int playersWon() {
-		int playerCounter = 0;
+	public void runLogin() {
+		this.add(this.gameLogin);
 		
-		for(Player player : this.players) {
-			if(player.hasWon()) {
-				playerCounter++;
-			}
-		}
+		this.pack();
+		this.setVisible(true);
+		this.centerScreen();
 		
-		return playerCounter;
+		this.gameLogin.waitLogin();
+		
+		this.setVisible(false);
+		this.remove(this.gameLogin);
 	}
 	
-	/**
-	 * Function that checks whether the game is finished or not
-	 * @return Returns true if the game is finished, otherwise it returns false
-	 */
-	public boolean isFinished() {
-		return this.playersWon() >= (this.nPlayers - 1);
+	public void runDashboard() {
+		this.gameDashboard.setUsername(this.getUserToken());
+		this.add(this.gameDashboard);
+		
+		this.pack();
+		this.setVisible(true);
+		
+		this.gameDashboard.waitDashboard();
+		
+		this.setVisible(false);
+		this.remove(this.gameDashboard);
 	}
 	
 	/**
 	 * Function used to display the Menu of the Game 
 	 */
 	public void runMenu() {
-		this.gameMenu = new GameMenu(new Dimension(this.WIDTH, this.HEIGHT));
 		this.add(this.gameMenu);
 		
 		this.pack();
@@ -169,34 +190,13 @@ public class Launcher extends JFrame {
 	public void runGame() {
 		this.setupGame();
 		
-		
-		this.gameBoard = new GameBoard(this.players, this.openCells, this.closeCells);
-		
-		/*Dimension statusDimension = new Dimension(200, this.gameBoard.getFrameHeight());
-		Point statusPosition = new Point(this.gameBoard.getFrameWidth(), 0);
-		this.gameStatus = new GameStatus(this.players, statusDimension, statusPosition);*/
-		
+		this.gameBoard = new GameBoard(this, this.players, this.openCells, this.closeCells);
 		this.add(this.gameBoard, BorderLayout.CENTER);
 		this.gameBoard.setAlignmentX(Component.CENTER_ALIGNMENT);
 		
-		//this.add(this.gameStatus, BorderLayout.EAST);
-		
 		this.pack();
 		this.setVisible(true);
-		
-		while(!this.isFinished()) {
-			for(int p = 0; p < this.nPlayers && !this.isFinished(); p++) {
-				this.players[p].playerPlay();
-			}
-		}
-		
-		if(this.isFinished()) {
-			for(Player player : this.players) {
-				if(!player.hasWon()) {
-					player.setLoseLabel();
-				}
-			}
-		}
+		this.centerScreen();
 	}
 	
 	/**
@@ -209,7 +209,7 @@ public class Launcher extends JFrame {
 		this.setLocationRelativeTo(null);
 		
 		try {
-			BufferedImage image = ImageIO.read(getClass().getResource("icon.jpg"));
+			BufferedImage image = ImageIO.read(getClass().getResource("/icon.jpg"));
 			this.setIconImage(image);
 		} catch (IOException e) {
 		    e.printStackTrace();
@@ -247,7 +247,7 @@ public class Launcher extends JFrame {
 					cellType = CellType.Star;
 				}
 				
-				this.openCells[cellIndex] = new Cell(cellColor, cellType, cellIndex);
+				this.openCells[cellIndex] = new Cell(this, cellColor, cellType, cellIndex);
 			}
 			
 			for(int c = 0; c < 6; c++) {
@@ -258,7 +258,7 @@ public class Launcher extends JFrame {
 					cellType = CellType.End;
 				}
 				
-				this.closeCells[p][c] = new Cell(cellColor, cellType, c);
+				this.closeCells[p][c] = new Cell(this, cellColor, cellType, c);
 			}
 		}
 	}
@@ -313,6 +313,133 @@ public class Launcher extends JFrame {
 		}
 		
 		System.out.println();
+	}
+	
+	public StompSession getSession() {
+		return this.connectionSession;
+	}
+	
+	public String getUserToken() {
+		return this.user_token;
+	}
+	
+	public String getGameToken() {
+		return this.game_token;
+	}
+	
+	public void setUserToken(String user_token) {
+		this.user_token = user_token;
+	}
+	
+	public void setGameToken(String game_token) {
+		this.game_token = game_token;
+	}
+	
+	public void setGameSize(int game_size) {
+		this.game_size = game_size;
+	}
+	
+	public void setGamePlayers(ArrayList<String> game_players) {
+		this.game_players = game_players;
+	}
+	
+	public void setFinished(boolean is_finished) {
+		this.is_finished = is_finished;
+	}
+	
+	public boolean isFinished() {
+		return this.is_finished;
+	}
+	
+	public void updateList(HashMap<String, String> response_list) {
+		String game_token = response_list.get("game_token");
+		int game_size = Integer.parseInt(response_list.get("game_size"));
+		ArrayList<String> game_players = new ArrayList<String>();
+		
+		for(int p = 0; p < game_size; p++) {
+			game_players.add(response_list.get("player_" + p));
+		}
+		
+		this.setGameToken(game_token);
+		this.setGameSize(game_size);
+		this.setGamePlayers(game_players);
+		
+		if(response_list.containsKey("user_host")) {
+			String user_host = response_list.get("user_host");
+			if(!user_host.equals(this.getUserToken())) {
+				this.gameMenu.disableButton();
+			}
+		}
+		
+		if(response_list.containsKey("user_index")) {
+			this.user_index = Integer.parseInt(response_list.get("user_index"));
+		}
+		
+		this.gameMenu.updateList(game_token, game_size, game_players);
+	}
+	
+	public void startGame(HashMap<String, String> response_list) {
+		this.updateController = new UpdateController(this, this.connectionSession, this.getUserToken());
+		
+		this.updateList(response_list);
+		this.gameMenu.startGame();
+	}
+	
+	public void updateTurn(int turn_index) {
+		for(int p = 0; p < this.players.length; p++) {
+			if(p == turn_index) {
+				this.players[p].setTurn(true);
+			} else {
+				this.players[p].setTurn(false);
+			}
+		}
+	}
+	
+	public void updateDices(int diceValue, int turn_index, boolean can_move) {
+		Player player = this.players[turn_index];
+		player.setCanMove(can_move);
+		
+		Dice dice = player.getDice();
+		dice.setValue(diceValue);
+		dice.drawDice();
+	}
+	
+	public void updateArcheologist(int turn_index, int archeologist_index, int cell_index, String cell_type) {
+		if(cell_type.equals("open")) {
+			Archeologist archeologist = this.players[turn_index].getArcheologist(archeologist_index);
+			archeologist.moveArcheologist(openCells[cell_index]);
+		} else if(cell_type.equals("close")) {
+			Archeologist archeologist = this.players[turn_index].getArcheologist(archeologist_index);
+			archeologist.moveArcheologist(closeCells[turn_index][cell_index]);
+		}
+	}
+	
+	public void updateKill(int kill_user_index, int kill_archeologist_index) {
+		Player player = this.players[kill_user_index];
+		
+		if(player != null) {
+			Archeologist archeologist = player.getArcheologist(kill_archeologist_index);
+			archeologist.moveBase();
+		}
+	}
+	
+	public void updateWon(int user_index, int won_index, boolean is_finished) {
+		Player playerWon = this.players[user_index];
+		playerWon.setWon(true, won_index);
+		
+		if(is_finished) {
+			this.setFinished(true);
+			
+			for(Player player : this.players) {
+				if(!player.hasWon()) {
+					player.setLoseLabel();
+				}
+			}
+		}
+	}
+	
+	public void updateMessage(int user_index, String user_message) {
+		this.gameBoard.addMessage(user_index, user_message);
 	}
 	
 	/**

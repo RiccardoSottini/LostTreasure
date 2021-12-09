@@ -3,6 +3,7 @@ package connection;
 import java.lang.reflect.Type;
 import java.util.HashMap;
 
+import org.apache.logging.log4j.message.MapMessage;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompFrameHandler;
@@ -24,30 +25,6 @@ public class ConnectionSessionHandler implements StompSessionHandler {
 
 	@Override
 	public void afterConnected(StompSession session, StompHeaders connectedHeaders) {
-		session.send("/app/game/create", "test");
-
-		session.subscribe("/response/game/create", new StompFrameHandler() {
-
-            @Override
-            public Type getPayloadType(StompHeaders headers) {
-                return String.class;
-            }
-
-            @Override
-            public void handleFrame(StompHeaders headers, Object payload) {
-            	ObjectMapper mapper = new ObjectMapper();
-            	
-				try {
-					GameModel model = mapper.readValue((String) payload, GameModel.class);
-	            	
-	            	System.out.println(model.token);
-				} catch (JsonProcessingException e) {
-					e.printStackTrace();
-				}
-            }
-
-        });
-		
 	    System.out.println("Connected to the Server!");
 	}
 	

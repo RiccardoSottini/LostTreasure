@@ -1,3 +1,4 @@
+package game;
 import java.awt.Color;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -7,6 +8,8 @@ import javax.swing.BorderFactory;
 import javax.swing.JPanel;
 import javax.swing.border.Border;
 
+import connection.controllers.RollController;
+
 /**
  * Class that is used to manage the Dice functions
  */
@@ -14,6 +17,7 @@ public class Dice extends JPanel implements MouseListener {
 	private int diceValue;
 	private boolean diceRoll;
 	private final JPanel turnPanel;
+	private final Launcher launcher;
 	
 	public final int[][][] pointPositions = {
 		{ {11, 11} },
@@ -28,10 +32,11 @@ public class Dice extends JPanel implements MouseListener {
 	 * Creates a new instance of Dice
 	 * @param turnPanel Panel used by the Player to show his turn
 	 */
-	public Dice(JPanel turnPanel) { 
+	public Dice(Launcher launcher, JPanel turnPanel) { 
 		this.diceValue = 0;
 		this.diceRoll = false;
 		this.turnPanel = turnPanel;
+		this.launcher = launcher;
 		
 		this.setupDice();
 	}
@@ -40,10 +45,11 @@ public class Dice extends JPanel implements MouseListener {
 	 * Creates a new instance of Dice
 	 * @param diceValue Value to set to the Dice
 	 */
-	public Dice(int diceValue) {
+	public Dice(Launcher launcher, int diceValue) {
 		this.diceValue = diceValue;
 		this.diceRoll = false;
 		this.turnPanel = null;
+		this.launcher = launcher;
 		
 		this.setupDice();
 	}
@@ -90,16 +96,6 @@ public class Dice extends JPanel implements MouseListener {
 	}
 	
 	/**
-	 * Function used to roll the Dice and display it
-	 */
-	public void rollDice() {
-		Random rnd = new Random();
-		this.setValue(rnd.nextInt(6) + 1);
-		
-		this.drawDice();
-	}
-	
-	/**
 	 * Function used to set the value to the Dice
 	 */
 	public void setValue(int diceValue) {
@@ -122,7 +118,8 @@ public class Dice extends JPanel implements MouseListener {
 	@Override
 	public void mouseClicked(MouseEvent e) {
 		if(!this.diceRoll) {
-			this.rollDice();
+			RollController rollController = new RollController(launcher);
+			rollController.sendRoll();
 		}
 	}
 

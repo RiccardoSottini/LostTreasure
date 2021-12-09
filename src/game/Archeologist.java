@@ -1,3 +1,4 @@
+package game;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -38,7 +39,6 @@ public class Archeologist extends JPanel {
 	
 	private final int archeologistCode;
 	private final CellColor archeologistColor;
-	private boolean archeologistStatus;
 	private boolean archeologistWon;
 	private int archeologistPosition;
 	
@@ -49,6 +49,8 @@ public class Archeologist extends JPanel {
 	private Point archeologistCoord;
 	private int archeologistOffset;
 	
+	private Cell archeologistCell;
+	
 	/**
 	 * Creates a new instance of Archeologist
 	 * @param player Player that has the Archeologist
@@ -58,7 +60,6 @@ public class Archeologist extends JPanel {
 	public Archeologist(Player player, int archeologistCode, CellColor archeologistColor) {
 		this.archeologistCode = archeologistCode;
 		this.archeologistColor = archeologistColor;
-		this.archeologistStatus = false;
 		this.archeologistWon = false;
 		this.archeologistPosition = -1;
 		
@@ -66,7 +67,7 @@ public class Archeologist extends JPanel {
 		this.playerCode = player.getCode();
 		
 		try {
-        	InputStream stream = getClass().getResourceAsStream("user-" + this.playerNames.get(this.playerCode) + ".png");
+        	InputStream stream = getClass().getResourceAsStream("/user-" + this.playerNames.get(this.playerCode) + ".png");
         	this.playerIcon = new ImageIcon(ImageIO.read(stream));
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -106,125 +107,30 @@ public class Archeologist extends JPanel {
 	
 	/**
 	 * Function used to move the Archeologist to a new Cell
-	 * @param changePosition Number of cells that the Archeologist has to move ahead
-	 * @return Returns whether the archeologist moved or not
+	 * @param archeologistCell Cell ahead to move the Archeologist
 	 */
-	public boolean moveArcheologist(int changePosition) {
-		if(this.canMove(changePosition)) {
-			int oldPosition = this.getPosition();
-			int newPosition = this.addPosition(changePosition);
-			
-			Cell newCell = player.getCell(newPosition);
-			Cell oldCell = player.getCell(oldPosition);
+	public void moveArcheologist(Cell archeologistCell) {
+		Cell oldCell = this.archeologistCell;
 		
-			if(newCell.canKill()) {
-				boolean hasKilled = newCell.killArcheologists(this);
-				this.player.setKill(hasKilled);
-			}
-			
-			if(oldCell != null) {
-				oldCell.removeArcheologist(this, true);
-			}
-			
-			newCell.addArcheologist(this);
-			
-			return true;
+		if(oldCell != null) {
+			oldCell.removeArcheologist(this, true);
 		}
 		
-		return false;
+		this.archeologistCell = archeologistCell;
+		this.archeologistCell.addArcheologist(this);
 	}
 	
-	/**
-	 * Function used to check whether the Archeologist can move to a new Cell or not
-	 * @param changePosition Number of cells that the Archeologist has to move ahead
-	 * @return Returns whether the archeologist can be moved or not
-	 */
-	public boolean canMove(int changePosition) {
-		if(!this.hasWon()) {
-			int newPosition = this.archeologistPosition + changePosition;
-			
-			if(this.getStatus()) {
-				if(newPosition <= 56) {
-					return true;
-				}
-			} else {
-				if(changePosition == 6 && newPosition <= 56) {
-					return true;
-				}
-			}
+	public void moveBase() {
+		Cell oldCell = this.archeologistCell;
+		
+		if(oldCell != null) {
+			oldCell.removeArcheologist(this, true);
 		}
 		
-		return false;
-	}
-	
-	/**
-	 * Function used to move the Archeologist by a certain number of positions
-	 * @param changePosition Number of cells that the Archeologist has to move ahead
-	 * @return Returns the new Position of the Archeologist
-	 */
-	public int addPosition(int changePosition) {
-		int newPosition = this.archeologistPosition + changePosition;
+		this.archeologistCell = null;
 		
-		if(this.getStatus() == false) {
-			if(this.getPosition() == -1 && changePosition == 6) {
-				this.setPosition(0);
-				this.setStatus(true);
-				this.player.drawBase();
-			}
-		} else if(newPosition <= 56) {
-			this.archeologistPosition = newPosition;
-			
-			if(this.getPosition() == 56) {
-				this.setStatus(false);
-				this.setWon(true);
-				
-				this.player.checkWon();
-			}
-		}
-		
-		return this.archeologistPosition;
-	}
-	
-	/**
-	 * Set the Archeologist dead
-	 */
-	public void setDead() {
-		this.setStatus(false);
 		this.setPosition(-1);
-		
-		this.player.drawBase();
-	}
-	
-	/**
-	 * Set the status of the Archeologist
-	 * @param archeologistStatus Status of the Archeologist
-	 */
-	public void setStatus(boolean archeologistStatus) {
-		this.archeologistStatus = archeologistStatus;
-	}
-	
-	/**
-	 * Get the status of the Archeologist
-	 * @return Status of the Archeologist
-	 */
-	public boolean getStatus() {
-		return this.archeologistStatus;
-	}
-	
-	/**
-	 * Set whether the Archeologist has reached the end or not
-	 * @param archeologistWon variable to define whether the Archeologist has reached the end or not
-	 */
-	public void setWon(boolean archeologistWon) {
-		this.archeologistWon = archeologistWon;
-	}
-	
-	/**
-	 * Return whether the Archeologist has reached the end or not
-	 * @return whether the Archeologist has reached the end or not
-	 */
-	public boolean hasWon() {
-		return this.archeologistWon;
+		this.player.drawBaseCell(this.archeologistCode);
 	}
 	
 	/**
@@ -241,13 +147,6 @@ public class Archeologist extends JPanel {
 	 */
 	public int getPosition() {
 		return this.archeologistPosition;
-	}
-	
-	/**
-	 * Set the Archeologist to be selected by the Player
-	 */
-	public void setArcheologistSelected() {
-		this.player.setArcheologistSelected(this);
 	}
 	
 	/**

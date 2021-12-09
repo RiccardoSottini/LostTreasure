@@ -1,3 +1,4 @@
+package game;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -72,6 +73,9 @@ public class GameBoard extends JPanel {
 	private final int frameWidth = cellWidth * nCells + 200;
 	private final int frameHeight = cellHeight * nCells + 100;
 	
+	private final int chatWidth = 178;
+	private final int chatHeight = frameHeight - 20;
+	
 	private Player[] players;
 	private Cell[] openCells;
 	private Cell[][] closeCells;
@@ -81,13 +85,17 @@ public class GameBoard extends JPanel {
 	
 	private BufferedImage boardImage;
 	
+	private final Launcher launcher;
+	private GameChat gameChat;
+	
 	/**
 	 * Creates a new instance of GameBoard
 	 * @param players Players that are playing the game
 	 * @param openCells cells that are accessible by each of the players
 	 * @param closeCells cells that are accessible by certain players
 	 */
-	public GameBoard(Player[] players, Cell[] openCells, Cell[][] closeCells) {
+	public GameBoard(Launcher launcher, Player[] players, Cell[] openCells, Cell[][] closeCells) {
+		this.launcher = launcher;
 		this.players = players;
 		this.openCells = openCells;
 		this.closeCells = closeCells;
@@ -100,7 +108,9 @@ public class GameBoard extends JPanel {
 		};
 		
 		this.setupBoard();
-		this.setupStatus();
+		this.setupChat();
+		
+		this.launcher.updateTurn(0);
 	}
 	
 	/**
@@ -108,7 +118,7 @@ public class GameBoard extends JPanel {
 	 */
 	public JPanel setupBoard() {
 		this.setLayout(null);
-		this.setPreferredSize(new Dimension(this.frameWidth, this.frameHeight));
+		this.setPreferredSize(new Dimension(this.frameWidth + 198, this.frameHeight));
 	
 		for(int c = 0; c < this.openCells.length; c++) {
 			Dimension cellDimension = new Dimension(this.cellWidth, this.cellHeight);
@@ -139,7 +149,7 @@ public class GameBoard extends JPanel {
 		}
 		
 		try {
-			InputStream stream = getClass().getResourceAsStream("board.png");
+			InputStream stream = getClass().getResourceAsStream("/board.png");
 			this.boardImage = ImageIO.read(stream);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -155,28 +165,13 @@ public class GameBoard extends JPanel {
         g.drawImage(boardImage, 0, 0, this.getWidth(), this.getHeight(), null);
     }
 	
-	private void setupStatus() {
-		//this.playerList = new JPanel();
+	private void setupChat() {
+		Dimension chatDimension = new Dimension(this.chatWidth, this.chatHeight);
+		Point chatLocation = new Point(this.frameWidth + 10, 10);
 		
-		/*int listWidth = (int)(this.panelSize.width * 0.75);
-		int listHeight = this.players.length * 50;
-		int listOffset = (int)(this.panelSize.width * 0.125);
-		
-		Dimension listSize = new Dimension(listWidth, listHeight);
-		Point listPosition = new Point(listOffset, listOffset);
-		this.playerList.setSize(listSize);
-		this.playerList.setLocation(listPosition);
-		this.playerList.setLayout(null);
-		
-		this.playerList.setOpaque(true);
-		this.playerList.setVisible(true);
-		
-		for(int p = 0; p < this.players.length; p++) {
-			Dimension labelDimension = new Dimension(listWidth, 50);
-			Point labelPosition = new Point(0, p * 50);
-			
-			this.players[p].setupLabel(labelDimension, labelPosition, this);
-		}*/
+		this.gameChat = new GameChat(this.launcher, chatDimension, chatLocation);
+
+		this.add(this.gameChat);
 		
 		for(int p = 0; p < this.players.length; p++) {
 			Dimension labelDimension = new Dimension(this.labelWidth, this.labelHeight);
@@ -184,11 +179,6 @@ public class GameBoard extends JPanel {
 			
 			this.players[p].setupLabel(labelDimension, labelPosition, this);
 		}
-		
-		//this.players[0].setupLabel(new Dimension(180, 40), new Point(100, 10), this);
-		//this.players[1].setupLabel(new Dimension(180, 40), new Point(300, 10), this);
-		
-		//this.add(this.players[0]);
 	}
 	
 	/**
@@ -203,7 +193,7 @@ public class GameBoard extends JPanel {
 				super.paintComponent(g);
 
 				try {
-					InputStream stream = getClass().getResourceAsStream("base.png");
+					InputStream stream = getClass().getResourceAsStream("/base.png");
 					ImageIcon image = new ImageIcon(ImageIO.read(stream));
 					g.drawImage(image.getImage(), 0, 0, this.getWidth(), this.getHeight(), null);
 				} catch (IOException e) {
@@ -263,7 +253,7 @@ public class GameBoard extends JPanel {
 				int cellPositionY = (index <= 1) ? 0 : cellDimension.height;
 				Point cellPosition = new Point(cellPositionX, cellPositionY);
 
-				CellBase cellBase = new CellBase(cellDimension, cellPosition, null);
+				CellBase cellBase = new CellBase(this.launcher, index, cellDimension, cellPosition, null);
 				baseCenter.add(cellBase);
 			}
 		}
@@ -285,5 +275,14 @@ public class GameBoard extends JPanel {
 	 */
 	public int getFrameHeight() {
 		return this.frameHeight;
+	}
+	
+	/**
+	 * Send message on the chatbox
+	 * @param user_index Index of the User
+	 * @param user_message Message that the user wants to send
+	 */
+	public void addMessage(int user_index, String user_message) {
+		this.gameChat.addMessage(user_index, user_message);
 	}
 }

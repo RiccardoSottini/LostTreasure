@@ -1,3 +1,4 @@
+package game;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -45,6 +46,8 @@ public class Player {
 	
 	private final Launcher launcher;
 	
+	private boolean can_move = false;
+	
 	/**
 	 * Creates a new instance of Player
 	 * @param playerName Name of the Player
@@ -75,41 +78,6 @@ public class Player {
 	}
 	
 	/**
-	 * Function used to make the user to play
-	 */
-	public void playerPlay() {
-		this.checkWon();
-		
-		if(!this.hasWon()) {
-			do {
-				this.setTurn(true);
-				
-				while(!this.hasDice()) {
-					try {
-					    Thread.sleep(100);
-					} catch (Exception e) {
-					    e.printStackTrace();
-					}
-				}
-				
-				this.removeArcheologistSelected();
-				
-				if(this.canMove()) {
-					while(!this.playMove()) {
-						try {
-						    Thread.sleep(100);
-						} catch (Exception e) {
-						    e.printStackTrace();
-						}
-					}
-				} else {
-					this.setTurn(false);
-				}
-			} while(!this.hasWon() && this.isPlayerTurn());
-		}
-	}
-	
-	/**
 	 * Function used to setup the Base of the Player
 	 * @param cellDimension Dimension of the Base
 	 * @param baseCenter Panel where to show the Base of the Player
@@ -120,7 +88,7 @@ public class Player {
 			int cellPositionY = (baseIndex <= 1) ? 0 : cellDimension.height;
 			Point cellPosition = new Point(cellPositionX, cellPositionY);
 
-			this.baseCells[baseIndex] = new CellBase(cellDimension, cellPosition, this.archeologists[baseIndex]);
+			this.baseCells[baseIndex] = new CellBase(launcher, baseIndex, cellDimension, cellPosition, this.archeologists[baseIndex]);
 			
 			baseCenter.add(this.baseCells[baseIndex]);
 		}
@@ -132,9 +100,23 @@ public class Player {
 	 * Draw the Base of the Player
 	 */
 	public void drawBase() {
-		for(int baseIndex = 0; baseIndex < this.baseCells.length; baseIndex++) {
-			this.baseCells[baseIndex].drawArcheologist();
+		for(CellBase baseCell : this.baseCells) {
+			this.drawBaseCell(baseCell);
 		}
+	}
+	
+	/**
+	 * Draw a single Base Cell of the Player
+	 */
+	public void drawBaseCell(CellBase baseCell) {
+		baseCell.drawArcheologist();
+	}
+	
+	/**
+	 * Draw a single Base Cell of the Player using the base index as reference
+	 */
+	public void drawBaseCell(int baseIndex) {
+		this.baseCells[baseIndex].drawArcheologist();
 	}
 	
 	/**
@@ -232,8 +214,19 @@ public class Player {
 			this.turnPanel.setBorder(labelBorder);
 			
 			this.deleteDice();
-			this.removeArcheologistSelected();
 		}
+	}
+	
+	/**
+	 * Check whether the Player has a Dice or not
+	 * @return whether the Player has a Dice or not
+	 */
+	public boolean hasDice() {
+		if(this.dice != null) {
+			return this.dice.getValue() != 0;
+		}
+		
+		return false;
 	}
 	
 	/**
@@ -250,7 +243,7 @@ public class Player {
 	public void setDice() {
 		this.turnPanel.removeAll();
 		
-		this.dice = new Dice(this.turnPanel);
+		this.dice = new Dice(this.launcher, this.turnPanel);
 		this.turnPanel.add(this.dice);
 		
 		this.turnPanel.repaint();
@@ -269,26 +262,6 @@ public class Player {
 	}
 	
 	/**
-	 * Check whether the Player has a Dice or not
-	 * @return whether the Player has a Dice or not
-	 */
-	public boolean hasDice() {
-		if(this.dice != null) {
-			return this.dice.getValue() != 0;
-		}
-		
-		return false;
-	}
-	
-	/**
-	 * Check whether the Player has selected a Archeologist or not
-	 * @return whether the Player has selected a Archeologist or not
-	 */
-	public boolean isArcheologistSelected() {
-		return archeologistSelected != null;
-	}
-	
-	/**
 	 * Get the list of the Player's Archeologist
 	 * @return List of the Player's Archeologist
 	 */
@@ -296,83 +269,20 @@ public class Player {
 		return this.archeologists;
 	}
 	
-	/**
-	 * Get the Archeologist that is selected by the Player
-	 * @return Archeologist that is selected by the Player
-	 */
-	public Archeologist getArcheologistSelected() {
-		return archeologistSelected;
+	public Archeologist getArcheologist(int archeologistIndex) {
+		return this.archeologists[archeologistIndex];
 	}
 	
-	/**
-	 * Set a Archeologist to be selected by the Player
-	 * @param archeologistSelected Archeologist that is selected by the Player
-	 */
-	public void setArcheologistSelected(Archeologist archeologistSelected) {
-		this.archeologistSelected = archeologistSelected;
-	}
-	
-	/**
-	 * Remove the reference to the Archeologist that was previously selected
-	 */
-	public void removeArcheologistSelected() {
-		this.archeologistSelected = null;
+	public void setCanMove(boolean can_move) {
+		this.can_move = can_move;
 	}
 	
 	/**
 	 * Check whether the Player can make its Archeologist to move
 	 * @return whether the Player can make its Archeologist to move
 	 */
-	public boolean canMove() {
-		if(this.hasDice()) {
-			Dice playerDice = this.getDice();
-			
-			for(Archeologist archeologist : this.archeologists) {
-				if(archeologist.canMove(playerDice.getValue())) {
-					return true;
-				}
-			}
-		}
-		
-		return false;
-	}
-	
-	/**
-	 * Function used to make a Move
-	 * @return whether the Player has moved one of its Archeologists or not
-	 */
-	public boolean playMove() {
-		if(this.isPlayerTurn()) {
-			if(this.isArcheologistSelected()) {
-				if(this.hasDice()) {
-					Archeologist selectedArcheologist = this.getArcheologistSelected();
-					int changePosition = this.getDice().getValue();
-					
-					if(selectedArcheologist.moveArcheologist(changePosition)) {
-						if(this.hasWon() || (this.getDice().getValue() != 6 && !this.checkKill() && selectedArcheologist.getPosition() != 56)) {
-							this.setTurn(false);
-						}
-						
-						return true;
-					}
-				}
-			}
-		}	
-		
-		return false;
-	}
-	
-	/**
-	 * Get the cell at a certain Position
-	 * @param position Position of the Cell
-	 * @return Cell at a certain Position
-	 */
-	public Cell getCell(int position) {
-		if(position >= 0) {
-			return this.playerCells[position];
-		}
-		
-		return null;
+	public boolean getCanMove() {
+		return this.can_move;
 	}
 	
 	/**
@@ -400,27 +310,6 @@ public class Player {
 		this.setKill(false);
 		
 		return killValue;
-	}
-	
-	/**
-	 * Check whether the player has completed the game or not
-	 */
-	public void checkWon() {
-		int counter = 0;
-		
-		for(Archeologist archeologist : this.archeologists) {
-			if(archeologist.hasWon()) {
-				counter++;
-			}
-		}
-		
-		this.playerWon = counter == 4;
-		
-		if(this.playerWon) {
-			this.playerWonPosition = this.launcher.playersWon();
-			
-			this.setWonLabel();
-		}
 	}
 
 	/**
@@ -462,6 +351,15 @@ public class Player {
 		winLabel.setVisible(true);
 		
 		this.turnPanel.add(winLabel);
+	}
+	
+	public void setWon(boolean playerWon, int playerWonPosition) {
+		this.playerWon = playerWon;
+		
+		if(this.playerWon) {
+			this.playerWonPosition = playerWonPosition;
+			this.setWonLabel();
+		}
 	}
 	
 	/**

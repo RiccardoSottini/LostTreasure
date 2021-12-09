@@ -1,4 +1,6 @@
+package game;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
@@ -6,15 +8,21 @@ import java.awt.Graphics;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.Point;
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.Transferable;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
+import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFormattedTextField;
@@ -28,10 +36,17 @@ import javax.swing.border.Border;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import org.springframework.messaging.simp.stomp.StompSession;
+
+import connection.controllers.CreateController;
+import connection.controllers.StartController;
+
 /**
  * Class that is used to manage the Menu of the Game
  */
 public class GameMenu extends JPanel {
+	private final Launcher launcher;
+	
 	private final Color[] playerColors = {
 		Color.decode("#65CDD1"),
 		Color.decode("#EE6E6E"),
@@ -45,9 +60,11 @@ public class GameMenu extends JPanel {
 	
 	private ImageIcon[] playersIcons;
 	
+	private final int DEFAULT_PLAYERS = 1;
 	private final int MIN_PLAYERS = 2;
 	private final int MAX_PLAYERS = 4;
 	private int nPlayers;
+	private String game_token;
 	
 	private final Dimension menuDimension;
 	private ImageIcon menuImage;
@@ -57,11 +74,16 @@ public class GameMenu extends JPanel {
 	
 	private JPanel numberPanel;
 	private JLabel numberLabel;
-	private JSpinner numberField;
+	private JTextField numberField;
 	
 	private JPanel playerList;
 	private JPanel[] playerPanels;
 	private JTextField[] playerFields;
+	
+	private JPanel sharePanel;
+	private JLabel shareLabel;
+	private JTextField shareText;
+	private JButton shareButton;
 	
 	private JButton playButton;
 	
@@ -71,10 +93,11 @@ public class GameMenu extends JPanel {
 	 * Creates a new instance of GameMenu
 	 * @param menuDimension Dimension of the Menu
 	 */
-	public GameMenu(Dimension menuDimension) {
+	public GameMenu(Launcher launcher, Dimension menuDimension) {
+		this.launcher = launcher;
 		this.menuDimension = menuDimension;  
         
-		this.nPlayers = MIN_PLAYERS;
+		this.nPlayers = DEFAULT_PLAYERS;
 		this.hasInput = false;
 		
 		this.setupMenu();
@@ -83,7 +106,7 @@ public class GameMenu extends JPanel {
 	
 	public void setupImages() {
 		try {
-        	InputStream stream = getClass().getResourceAsStream("menu-background.jpg");
+        	InputStream stream = getClass().getResourceAsStream("/menu-background.jpg");
 			this.menuImage = new ImageIcon(ImageIO.read(stream));
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -92,7 +115,7 @@ public class GameMenu extends JPanel {
         this.playersIcons = new ImageIcon[4];
         for(int i = 0; i < 4; i++) {
         	try {
-            	InputStream stream = getClass().getResourceAsStream("user-" + this.playerNames[i] + ".png");
+            	InputStream stream = getClass().getResourceAsStream("/user-" + this.playerNames[i] + ".png");
             	this.playersIcons[i] = new ImageIcon(ImageIO.read(stream));
     		} catch (IOException e) {
     			e.printStackTrace();
@@ -189,6 +212,7 @@ public class GameMenu extends JPanel {
 		
 		this.setupNumberPanel();
 		this.setupPlayerList();
+		this.setupShare();
 		this.setupPlayButton();
 		
 		this.menuCenter.setOpaque(false);
@@ -204,8 +228,6 @@ public class GameMenu extends JPanel {
 			@Override
 			protected void paintComponent(Graphics g) {
 				super.paintComponent(g);
-
-				//g.drawImage(tileImage.getImage(), 0, 0, this.getWidth(), this.getHeight(), null);
 			}
 	    };
 		
@@ -251,18 +273,7 @@ public class GameMenu extends JPanel {
 	 * Function that is used to display the input field to input the number of players
 	 */
 	public void setupNumberField() {
-		SpinnerModel fieldModel = new SpinnerNumberModel(MIN_PLAYERS, MIN_PLAYERS, MAX_PLAYERS, 1);
-		this.numberField = new JSpinner(fieldModel);
-		
-		this.numberField.addChangeListener(new ChangeListener() {
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                JSpinner numberField = (JSpinner) e.getSource();
-                
-                nPlayers = (int) numberField.getValue();
-                showPlayers();
-            }
-        });
+		this.numberField = new JTextField();
 		
 		Dimension fieldDimension = new Dimension(60, 26);
 		this.numberField.setSize(fieldDimension);
@@ -271,11 +282,10 @@ public class GameMenu extends JPanel {
 		int fieldPositionY = 12;
 		this.numberField.setLocation(fieldPositionX, fieldPositionY);
 		
-		JFormattedTextField numberText = ((JSpinner.DefaultEditor) this.numberField.getEditor()).getTextField();
-		numberText.setFont(new Font("Arial", Font.BOLD, 14));
-		numberText.setHorizontalAlignment(JFormattedTextField.CENTER);
-		numberText.setEditable(false);
-		numberText.setBackground(Color.WHITE);
+		this.numberField.setFont(new Font("Arial", Font.BOLD, 14));
+		this.numberField.setHorizontalAlignment(JFormattedTextField.CENTER);
+		this.numberField.setEditable(false);
+		this.numberField.setBackground(Color.WHITE);
 		
 		this.numberPanel.add(this.numberField);
 	}
@@ -387,6 +397,7 @@ public class GameMenu extends JPanel {
 		playerField.setBorder(BorderFactory.createCompoundBorder(fieldBorder, fieldPadding));
 		playerField.setBackground(this.playerColors[playerIndex]);
 		playerField.setForeground(Color.BLACK);
+		playerField.setEditable(false);
 		
 		this.playerFields[playerIndex] = playerField;
 		this.playerPanels[playerIndex].add(playerField);
@@ -437,14 +448,17 @@ public class GameMenu extends JPanel {
 		this.playButton.addMouseListener(new MouseListener() {
 			@Override
 			public void mouseClicked(MouseEvent e) { 
-				hasInput = true;
+				StompSession connectionSession = launcher.getSession();
+				String user_token = launcher.getUserToken();
+				String game_token = launcher.getGameToken();
+				
+				StartController startController = new StartController(launcher, connectionSession, user_token, game_token);
+				if(startController.sendStart()) {
+					System.out.println("START SUCCESS");
+				} else {
+					System.out.println("START ERROR");
+				}
 			}
-
-			@Override
-			public void mousePressed(MouseEvent e) { }
-
-			@Override
-			public void mouseReleased(MouseEvent e) { }
 			
 			@Override
 			public void mouseEntered(MouseEvent e) { 
@@ -458,6 +472,116 @@ public class GameMenu extends JPanel {
 			public void mouseExited(MouseEvent e) { 
 				playButton.setBackground(Color.decode("#f7ec9c"));
 			}
+
+			@Override
+			public void mousePressed(MouseEvent e) { }
+
+			@Override
+			public void mouseReleased(MouseEvent e) { }
         });
+	}
+	
+	public void copyGame() {
+		Toolkit.getDefaultToolkit()
+        .getSystemClipboard()
+        .setContents(
+                new StringSelection(game_token),
+                null
+        );
+	}
+	
+	public void setupShare() {
+		this.sharePanel = new JPanel();
+		this.sharePanel.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) { 
+				copyGame();
+			}
+        });
+		
+		this.sharePanel.setLayout(null);
+		
+		int panelWidth = this.menuCenter.getWidth() - 40;
+		int panelHeight = 30;
+		this.sharePanel.setSize(new Dimension(panelWidth, panelHeight));
+		
+		int panelPositionX = 20;
+		int panelPositionY = this.numberLabel.getHeight() + this.playerList.getHeight() + 40;
+		this.sharePanel.setLocation(panelPositionX, panelPositionY);
+		
+		Border cellBorder = BorderFactory.createLineBorder(Color.BLACK, 1);
+		this.sharePanel.setBorder(cellBorder);
+		this.sharePanel.setOpaque(true);
+		this.sharePanel.setBackground(Color.decode("#f7ec9c"));
+		
+		this.setupShareLabel();
+		this.setupShareButton();
+		
+		this.sharePanel.setVisible(true);
+		this.menuCenter.add(this.sharePanel);		
+	}
+	
+	public void setupShareLabel() {
+		this.shareLabel = new JLabel();
+		this.shareLabel.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) { 
+				copyGame();
+			}
+        });
+		
+		this.shareLabel.setSize(new Dimension(this.menuCenter.getWidth() - 50, 20));
+		this.shareLabel.setLocation(10, 5);
+		
+		this.sharePanel.add(this.shareLabel);
+	}
+	
+	public void setupShareButton() {
+		this.shareButton = new JButton();
+		this.shareButton.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) { 
+				copyGame();
+			}
+        });
+		
+		this.shareButton.setSize(20, 20);
+		this.shareButton.setLocation(this.sharePanel.getWidth() - 30, 5);
+		this.shareButton.setOpaque(false);
+		this.shareButton.setContentAreaFilled(false);
+		this.shareButton.setBorderPainted(false);
+		this.shareButton.setVisible(true);
+		
+		try {
+        	InputStream stream = getClass().getResourceAsStream("/share.png");
+        	ImageIcon shareImage = new ImageIcon(ImageIO.read(stream));
+        	this.shareButton.setIcon(shareImage);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		this.sharePanel.add(this.shareButton);
+	}
+	
+	public void updateList(String game_token, int game_size, ArrayList<String> game_players) {
+		this.game_token = game_token;
+		this.numberField.setText(Integer.toString(game_size));
+		this.nPlayers = game_size;
+		
+		for(int playerIndex = 0; playerIndex < this.nPlayers; playerIndex++) {
+			this.playerFields[playerIndex].setText(game_players.get(playerIndex));
+		}
+		
+		this.shareLabel.setText(this.game_token);
+		
+		this.showPlayers();
+	}
+	
+	public void startGame() {
+		this.hasInput = true;
+	}
+	
+	public void disableButton() {
+		this.playButton.setVisible(false);
 	}
 }

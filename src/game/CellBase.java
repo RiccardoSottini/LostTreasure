@@ -1,3 +1,4 @@
+package game;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -13,10 +14,14 @@ import javax.swing.ImageIcon;
 import javax.swing.JPanel;
 import javax.swing.border.Border;
 
+import connection.controllers.MoveController;
+
 /**
  * Class that is used to show a single Base Cell of the player
  */
 public class CellBase extends JPanel implements MouseListener {
+	private final Launcher launcher;
+	private final int cellIndex;
 	private final Dimension cellDimension;
 	private final Point cellPosition;
 	private final Archeologist cellArcheologist;
@@ -28,7 +33,9 @@ public class CellBase extends JPanel implements MouseListener {
 	 * @param cellPosition Position of the Cell
 	 * @param cellArcheologist Archeologist that is contained in this Cell
 	 */
-	public CellBase(Dimension cellDimension, Point cellPosition, Archeologist cellArcheologist) {
+	public CellBase(Launcher launcher, int cellIndex, Dimension cellDimension, Point cellPosition, Archeologist cellArcheologist) {
+		this.launcher = launcher;
+		this.cellIndex = cellIndex;
 		this.cellDimension = cellDimension;
 		this.cellPosition = cellPosition;
 		this.cellArcheologist = cellArcheologist;
@@ -37,7 +44,7 @@ public class CellBase extends JPanel implements MouseListener {
 		this.addMouseListener(this);
 		
 		try {
-			InputStream stream = getClass().getResourceAsStream("grass.jpg");
+			InputStream stream = getClass().getResourceAsStream("/grass.jpg");
 			this.cellImage = new ImageIcon(ImageIO.read(stream));
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -92,23 +99,8 @@ public class CellBase extends JPanel implements MouseListener {
 	 */
 	@Override
 	public void mouseClicked(MouseEvent e) {
-		if(this.cellArcheologist != null) {
-			Player cellPlayer = this.cellArcheologist.getPlayer();
-			
-			if(cellPlayer.isPlayerTurn()) {
-				if(!cellPlayer.isArcheologistSelected()) {
-					if(cellPlayer.hasDice()) {
-						Dice playerDice = cellPlayer.getDice();
-						
-						if(playerDice.getValue() == 6) {
-							if(this.cellArcheologist.getPosition() == -1) {
-								this.cellArcheologist.setArcheologistSelected();
-							}
-						}
-					}
-				}
-			}
-		}
+		MoveController moveController = new MoveController(launcher, this.cellIndex, "base");
+		moveController.sendMove();
 	}
 
 	@Override
