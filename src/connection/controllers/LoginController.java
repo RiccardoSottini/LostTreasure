@@ -16,6 +16,7 @@ public class LoginController {
 	private final String password_hash;
 	
 	private String user_token;
+	private String user_name;
 	private String error_message;
 	
 	public LoginController(StompSession session, String username, String password) {
@@ -39,6 +40,7 @@ public class LoginController {
 			
 			if(response_list.get("status").equals("success")) {
 				this.user_token = response_list.get("user_token");
+				this.user_name = response_list.get("user_name");
 				return true;
 			} else {
 				this.error_message = response_list.get("error_message");
@@ -52,6 +54,10 @@ public class LoginController {
 	
 	public String getToken() {
 		return this.user_token;
+	}
+	
+	public String getUsername() {
+		return this.user_name;
 	}
 	
 	public String getError() {

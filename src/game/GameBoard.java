@@ -1,5 +1,6 @@
 package game;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -90,13 +91,11 @@ public class GameBoard extends JPanel {
 	
 	/**
 	 * Creates a new instance of GameBoard
-	 * @param players Players that are playing the game
 	 * @param openCells cells that are accessible by each of the players
 	 * @param closeCells cells that are accessible by certain players
 	 */
-	public GameBoard(Launcher launcher, Player[] players, Cell[] openCells, Cell[][] closeCells) {
+	public GameBoard(Launcher launcher, Cell[] openCells, Cell[][] closeCells) {
 		this.launcher = launcher;
-		this.players = players;
 		this.openCells = openCells;
 		this.closeCells = closeCells;
 		
@@ -108,9 +107,6 @@ public class GameBoard extends JPanel {
 		};
 		
 		this.setupBoard();
-		this.setupChat();
-		
-		this.launcher.updateTurn(0);
 	}
 	
 	/**
@@ -119,6 +115,7 @@ public class GameBoard extends JPanel {
 	public JPanel setupBoard() {
 		this.setLayout(null);
 		this.setPreferredSize(new Dimension(this.frameWidth + 198, this.frameHeight));
+		this.setAlignmentX(Component.CENTER_ALIGNMENT);
 	
 		for(int c = 0; c < this.openCells.length; c++) {
 			Dimension cellDimension = new Dimension(this.cellWidth, this.cellHeight);
@@ -143,11 +140,6 @@ public class GameBoard extends JPanel {
 			}
 		}
 		
-		for(int baseIndex = 0; baseIndex < 4; baseIndex++) {
-			this.add(this.setupBaseCenter(baseIndex));
-			this.add(this.setupBase(baseIndex));
-		}
-		
 		try {
 			InputStream stream = getClass().getResourceAsStream("/board.png");
 			this.boardImage = ImageIO.read(stream);
@@ -158,28 +150,24 @@ public class GameBoard extends JPanel {
 		return this;
 	}
 	
+	public void startGame(Player[] players) {
+		this.players = players;
+		
+		for(int baseIndex = 0; baseIndex < 4; baseIndex++) {
+			this.add(this.setupBaseCenter(baseIndex));
+			this.add(this.setupBase(baseIndex));
+		}
+		
+		this.setupChat();
+		this.launcher.updateTurn(0);
+	}
+	
 	@Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         
         g.drawImage(boardImage, 0, 0, this.getWidth(), this.getHeight(), null);
     }
-	
-	private void setupChat() {
-		Dimension chatDimension = new Dimension(this.chatWidth, this.chatHeight);
-		Point chatLocation = new Point(this.frameWidth + 10, 10);
-		
-		this.gameChat = new GameChat(this.launcher, chatDimension, chatLocation);
-
-		this.add(this.gameChat);
-		
-		for(int p = 0; p < this.players.length; p++) {
-			Dimension labelDimension = new Dimension(this.labelWidth, this.labelHeight);
-			Point labelPosition = new Point(this.labelPositions[p][0], this.labelPositions[p][1]);
-			
-			this.players[p].setupLabel(labelDimension, labelPosition, this);
-		}
-	}
 	
 	/**
 	 * Function that is used to display the base for each of the players
@@ -261,6 +249,22 @@ public class GameBoard extends JPanel {
 		return baseCenter;
 	}
 	
+	public void setupChat() {
+		Dimension chatDimension = new Dimension(this.chatWidth, this.chatHeight);
+		Point chatLocation = new Point(this.frameWidth + 10, 10);
+		
+		this.gameChat = new GameChat(this.launcher, chatDimension, chatLocation);
+
+		this.add(this.gameChat);
+		
+		for(int p = 0; p < this.players.length; p++) {
+			Dimension labelDimension = new Dimension(this.labelWidth, this.labelHeight);
+			Point labelPosition = new Point(this.labelPositions[p][0], this.labelPositions[p][1]);
+			
+			this.players[p].setupLabel(labelDimension, labelPosition, this);
+		}
+	}
+	
 	/**
 	 * Get the Width of the Board
 	 * @return Width of the Board
@@ -277,12 +281,24 @@ public class GameBoard extends JPanel {
 		return this.frameHeight;
 	}
 	
+	public int getLabelWidth() {
+		return this.labelWidth;
+	}
+	
+	public int getLabelHeight() {
+		return this.labelHeight;
+	}
+	
+	public Dimension getLabelDimension() {
+		return new Dimension(this.labelWidth, this.labelHeight);
+	}
+	
 	/**
 	 * Send message on the chatbox
 	 * @param user_index Index of the User
 	 * @param user_message Message that the user wants to send
 	 */
-	public void addMessage(int user_index, String user_message) {
-		this.gameChat.addMessage(user_index, user_message);
+	public void addMessage(int user_index, String user_name, String user_message) {
+		this.gameChat.addMessage(user_index, user_name, user_message);
 	}
 }

@@ -19,6 +19,7 @@ import javax.swing.JButton;
 import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import javax.swing.border.Border;
 
@@ -39,7 +40,7 @@ public class GameLogin extends JPanel {
 	
 	private JPanel passwordPanel;
 	private JLabel passwordLabel;
-	private JTextField passwordField;
+	private JPasswordField passwordField;
 	
 	private JButton changeButton;
 	private JButton loginButton;
@@ -76,7 +77,7 @@ public class GameLogin extends JPanel {
 		this.setupTitle();
 		this.setupUsernameField();
 		this.setupPasswordField();
-		this.setupChange();
+		//this.setupChange();
 		this.setupLoginButton();
 		
 		this.setVisible(true);
@@ -117,7 +118,11 @@ public class GameLogin extends JPanel {
 		this.usernameField.setSize(new Dimension(this.usernamePanel.getWidth() / 4 * 3 - 10, 25));
 		this.usernameField.setLocation(this.usernamePanel.getWidth() / 4, (this.usernamePanel.getHeight() - this.usernameField.getHeight()) / 2);
 		this.usernameField.setBackground(Color.LIGHT_GRAY);
-		this.usernameField.setBorder(BorderFactory.createLineBorder(Color.black));
+		this.usernameField.setBorder(
+			BorderFactory.createCompoundBorder(
+				BorderFactory.createLineBorder(Color.black),
+				BorderFactory.createEmptyBorder(3, 3, 3, 3))
+		);
 		
 		this.usernamePanel.add(this.usernameLabel);
 		this.usernamePanel.add(this.usernameField);
@@ -137,11 +142,15 @@ public class GameLogin extends JPanel {
 		this.passwordLabel.setLocation(10, 0);
 		this.passwordLabel.setForeground(Color.black);
 		
-		this.passwordField = new JTextField();
+		this.passwordField = new JPasswordField();
 		this.passwordField.setSize(new Dimension(this.passwordPanel.getWidth() / 4 * 3 - 10, 25));
 		this.passwordField.setLocation(this.passwordPanel.getWidth() / 4, (this.passwordPanel.getHeight() - this.passwordField.getHeight()) / 2);
 		this.passwordField.setBackground(Color.LIGHT_GRAY);
-		this.passwordField.setBorder(BorderFactory.createLineBorder(Color.black));
+		this.passwordField.setBorder(
+			BorderFactory.createCompoundBorder(
+				BorderFactory.createLineBorder(Color.black),
+				BorderFactory.createEmptyBorder(3, 3, 3, 3))
+		);
 		
 		this.passwordPanel.add(this.passwordLabel);
 		this.passwordPanel.add(this.passwordField);
@@ -194,6 +203,8 @@ public class GameLogin extends JPanel {
 				LoginController loginController = new LoginController(launcher.getSession(), username, password);
 				if(loginController.sendLogin()) {
 					launcher.setUserToken(loginController.getToken());
+					launcher.setUsername(loginController.getUsername());
+					
 					toggleInput();
 				} else {
 					System.out.println("LOGIN ERROR");

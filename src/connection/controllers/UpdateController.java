@@ -65,9 +65,10 @@ public class UpdateController {
 				
 				if(response_list.get("method").equals("message")) {
 					int user_index = Integer.parseInt(response_list.get("user_index"));
+					String user_name = response_list.get("user_name");
 					String user_message = response_list.get("user_message");
 					
-					UpdateController.this.getLauncher().updateMessage(user_index, user_message);
+					UpdateController.this.getLauncher().updateMessage(user_index, user_name, user_message);
 				}
 			}
 		});

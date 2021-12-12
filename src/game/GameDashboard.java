@@ -26,6 +26,7 @@ import connection.controllers.JoinController;
 
 import javax.swing.JTextField;
 import javax.imageio.ImageIO;
+import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 
 public class GameDashboard extends JPanel {
@@ -90,7 +91,7 @@ public class GameDashboard extends JPanel {
 	}
 	
 	private void setupUsername() {
-		this.usernameLabel = new JLabel("Username");
+		this.usernameLabel = new JLabel();
 		this.usernameLabel.setFont(new Font("Arial", Font.BOLD, 20));
 		this.usernameLabel.setSize(new Dimension(300, this.MENU_HEIGHT - 20));
 		this.usernameLabel.setLocation(10, 10);
@@ -153,6 +154,8 @@ public class GameDashboard extends JPanel {
 		this.createButton.setFont(new Font("Arial", Font.BOLD, 20));
 		this.createButton.setSize(new Dimension(this.panelDimension.width / 2, 60));
 		this.createButton.setLocation(this.panelDimension.width / 4, 50);
+		this.createButton.setBorder(BorderFactory.createLineBorder(Color.black));
+		
 		this.createButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				StompSession connectionSession = launcher.getSession();
@@ -192,12 +195,19 @@ public class GameDashboard extends JPanel {
 		this.codeField.setBackground(Color.decode("#f7ec9c"));
 		this.codeField.setSize(new Dimension(this.panelDimension.width / 2 - 80, 25));
 		this.codeField.setLocation(this.panelDimension.width / 4 + 80, this.panelDimension.height - this.MENU_HEIGHT * 4);
+		this.codeField.setBorder(
+			BorderFactory.createCompoundBorder(
+				BorderFactory.createLineBorder(Color.black),
+				BorderFactory.createEmptyBorder(3, 3, 3, 3))
+		);
 		
 		this.joinButton = new JButton("Join Game");
 		this.joinButton.setBackground(Color.decode("#f7ec9c"));		
 		this.joinButton.setFont(new Font("Arial", Font.BOLD, 20));
 		this.joinButton.setSize(new Dimension(this.panelDimension.width / 2, 60));
 		this.joinButton.setLocation(this.panelDimension.width / 4, this.panelDimension.height - this.MENU_HEIGHT * 4 + 40);
+		this.joinButton.setBorder(BorderFactory.createLineBorder(Color.black));
+		
 		this.joinButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				StompSession connectionSession = launcher.getSession();

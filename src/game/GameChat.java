@@ -97,8 +97,8 @@ public class GameChat extends JPanel {
 	
 	public void setupInput() {
 		this.inputBox = new JTextPane();
-		this.inputBox.setBackground(Color.gray);
 		this.inputBox.setForeground(Color.white);
+		this.inputBox.setBackground(this.backgroundColor);
 		
 		this.inputPane = new JScrollPane(this.inputBox);
 		this.inputPane.setSize(new Dimension(this.getWidth() - (this.paddingX * 2), 80));
@@ -149,8 +149,8 @@ public class GameChat extends JPanel {
 		this.add(this.sendButton);
 	}
 	
-	public void addMessage(int user_index, String user_message) {
-		this.chatPane.append(Color.white, user_index + ": " + user_message);
+	public void addMessage(int user_index, String user_name, String user_message) {
+		this.chatPane.append(Color.white, user_name + ": " + user_message);
 	}
 }
 

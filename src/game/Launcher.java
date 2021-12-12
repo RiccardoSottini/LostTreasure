@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutionException;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.GridLayout;
 import java.awt.Point;
 import java.awt.image.BufferedImage;
@@ -83,12 +84,16 @@ public class Launcher extends JFrame {
 	private Player[] players;
 	private String[] playerNames;
 	
+	private JPanel gameLoading;
+	private BufferedImage loadingImage;
+	
 	private GameLogin gameLogin;
 	private GameDashboard gameDashboard;
 	private GameMenu gameMenu;
 	private GameBoard gameBoard;
 	
 	private String user_token;
+	private String user_name;
 	
 	private String game_token;
 	private int game_size;
@@ -102,17 +107,21 @@ public class Launcher extends JFrame {
 	 * Creates an instance of the Launcher class
 	 */
 	public Launcher() {	
+		this.setupFrame();
+		this.runLoading();
+		
 		try {
 			this.setupConnection("ws://localhost:8080/ws-connect");
 		} catch(Exception e) {
 			System.out.println("Connection error: " + e.getMessage());
 		}
 		
-		this.setupFrame();
+		this.setupCells();
 		
 		this.gameLogin = new GameLogin(this, new Dimension(this.WIDTH, this.HEIGHT));
 		this.gameDashboard = new GameDashboard(this, new Dimension(this.WIDTH, this.HEIGHT));
 		this.gameMenu = new GameMenu(this, new Dimension(this.WIDTH, this.HEIGHT));
+		this.gameBoard = new GameBoard(this, this.openCells, this.closeCells);
 		
 		this.runLogin();
 		this.runDashboard();
@@ -141,36 +150,60 @@ public class Launcher extends JFrame {
 		this.connectionSession = this.connectionClient.connect(URL, sessionHandler).get();
 	}
 	
+	public void runLoading() {
+		try {
+			InputStream stream = getClass().getResourceAsStream("/background-loading.png");
+			this.loadingImage = ImageIO.read(stream);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		this.gameLoading = new JPanel() {
+			@Override
+		    public void paintComponent(Graphics g) {
+		        super.paintComponent(g);
+		        
+		        g.drawImage(loadingImage, 0, 0, this.getWidth(), this.getHeight(), null);
+		    }
+		};
+		
+		this.gameLoading.setPreferredSize(new Dimension(this.WIDTH, this.HEIGHT));
+		this.gameLoading.setLocation(0, 0);
+		this.gameLoading.setLayout(null);
+		
+		this.add(this.gameLoading);
+		
+		this.pack();
+		this.centerScreen();
+		this.setVisible(true);
+	}
+	
 	public void runLogin() {
+		this.remove(this.gameLoading);
 		this.add(this.gameLogin);
 		
 		this.pack();
 		this.setVisible(true);
-		this.centerScreen();
 		
 		this.gameLogin.waitLogin();
-		
-		this.setVisible(false);
-		this.remove(this.gameLogin);
 	}
 	
 	public void runDashboard() {
-		this.gameDashboard.setUsername(this.getUserToken());
+		this.remove(this.gameLogin);
+		this.gameDashboard.setUsername(this.getUsername());
 		this.add(this.gameDashboard);
 		
 		this.pack();
 		this.setVisible(true);
 		
 		this.gameDashboard.waitDashboard();
-		
-		this.setVisible(false);
-		this.remove(this.gameDashboard);
 	}
 	
 	/**
 	 * Function used to display the Menu of the Game 
 	 */
 	public void runMenu() {
+		this.remove(this.gameDashboard);
 		this.add(this.gameMenu);
 		
 		this.pack();
@@ -179,20 +212,17 @@ public class Launcher extends JFrame {
 		this.gameMenu.waitMenu();
 		this.playerNames = this.gameMenu.getPlayers();
 		this.nPlayers = this.playerNames.length;
-		
-		this.setVisible(false);
-		this.remove(this.gameMenu);
 	}
 	
 	/**
 	 * Function used to display the Board of the Game
 	 */
 	public void runGame() {
-		this.setupGame();
-		
-		this.gameBoard = new GameBoard(this, this.players, this.openCells, this.closeCells);
+		this.setupPlayers();
+		this.gameBoard.startGame(this.players);
+
+		this.remove(this.gameMenu);
 		this.add(this.gameBoard, BorderLayout.CENTER);
-		this.gameBoard.setAlignmentX(Component.CENTER_ALIGNMENT);
 		
 		this.pack();
 		this.setVisible(true);
@@ -217,22 +247,12 @@ public class Launcher extends JFrame {
 	}
 	
 	/**
-	 * Function used to setup the variables to make the game run
-	 */
-	public void setupGame() {
-		this.openCells = new Cell[OPEN_CELLS];
-		this.closeCells = new Cell[MAX_PLAYERS][6];
-		this.players = new Player[nPlayers];
-		
-		this.setupCells();
-		this.setupPlayers();
-		this.setupFrame();
-	}
-	
-	/**
 	 * Function used to setup the cells used by the logic of the Game
 	 */
 	public void setupCells() {
+		this.openCells = new Cell[OPEN_CELLS];
+		this.closeCells = new Cell[MAX_PLAYERS][6];
+		
 		for(int p = 0; p < MAX_PLAYERS; p++) {
 			this.closeCells[p] = new Cell[6];
 			
@@ -267,6 +287,8 @@ public class Launcher extends JFrame {
 	 * Function that is used to setup the Players classes that are used by the logic of the Game
 	 */
 	public void setupPlayers() {
+		this.players = new Player[nPlayers];
+		
 		for(int playerIndex = 0; playerIndex < nPlayers; playerIndex++) {
 			Cell[] playerCells = new Cell[57];
 			char playerCode = playerCodes[playerIndex];
@@ -323,12 +345,20 @@ public class Launcher extends JFrame {
 		return this.user_token;
 	}
 	
+	public String getUsername() {
+		return this.user_name;
+	}
+	
 	public String getGameToken() {
 		return this.game_token;
 	}
 	
 	public void setUserToken(String user_token) {
 		this.user_token = user_token;
+	}
+	
+	public void setUsername(String user_name) {
+		this.user_name = user_name;
 	}
 	
 	public void setGameToken(String game_token) {
@@ -438,8 +468,8 @@ public class Launcher extends JFrame {
 		}
 	}
 	
-	public void updateMessage(int user_index, String user_message) {
-		this.gameBoard.addMessage(user_index, user_message);
+	public void updateMessage(int user_index, String user_name, String user_message) {
+		this.gameBoard.addMessage(user_index, user_name, user_message);
 	}
 	
 	/**

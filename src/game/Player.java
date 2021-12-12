@@ -2,10 +2,15 @@ package game;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Graphics;
 import java.awt.Point;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Random;
 
+import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -33,6 +38,7 @@ public class Player {
 	
 	private JPanel playerLabel;
 	private JLabel playerLabelName;
+	private JPanel playerLabelCurrent;
 	
 	private final Archeologist[] archeologists;
 	private Archeologist archeologistSelected = null;
@@ -135,6 +141,7 @@ public class Player {
 		
 		this.setupLabelTurn(labelDimension);
 		this.setupLabelName(labelDimension);
+		this.setupLabelCurrent(labelDimension);
 		
 		this.playerLabel.setSize(labelDimension);
 		this.playerLabel.setLocation(labelPosition);
@@ -181,6 +188,34 @@ public class Player {
 		
 		this.playerLabelName.setVisible(true);
 		this.playerLabel.add(this.playerLabelName);
+	}
+	
+	public void setupLabelCurrent(Dimension labelDimension) {
+		if(this.playerName.equals(this.launcher.getUsername())) {
+			try {
+				InputStream stream = getClass().getResourceAsStream("/player.png");
+				BufferedImage currentImage = ImageIO.read(stream);
+				
+				this.playerLabelCurrent = new JPanel() {
+					@Override
+					protected void paintComponent(Graphics g) {
+						super.paintComponent(g);
+						g.drawImage(currentImage, 0, 0, this.getWidth(), this.getHeight(), this);
+					}
+				};
+				
+				int currentSize = labelDimension.height - 10;
+				
+				this.playerLabelCurrent.setSize(currentSize, currentSize);
+				this.playerLabelCurrent.setLocation(labelDimension.width - currentSize - 5, 5);
+				this.playerLabelCurrent.setVisible(true);
+				this.playerLabelCurrent.setOpaque(false);
+				
+				this.playerLabel.add(this.playerLabelCurrent);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 	
 	/**
