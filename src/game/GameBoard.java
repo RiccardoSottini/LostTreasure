@@ -11,6 +11,8 @@ import java.awt.event.WindowListener;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -300,5 +302,13 @@ public class GameBoard extends JPanel {
 	 */
 	public void addMessage(int user_index, String user_name, String user_message) {
 		this.gameChat.addMessage(user_index, user_name, user_message);
+	}
+	
+	public void updateCards(LinkedHashMap<String, Integer> user_cards) {
+		this.gameChat.updateCards(user_cards);
+	}
+	
+	public void removeSelectedCards() {
+		this.gameChat.removeSelectedCards();
 	}
 }

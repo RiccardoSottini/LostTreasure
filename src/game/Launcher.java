@@ -1,6 +1,7 @@
 package game;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.concurrent.ExecutionException;
@@ -10,6 +11,9 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.GridLayout;
 import java.awt.Point;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,6 +41,7 @@ import connection.ConnectionSessionHandler;
 import connection.Request;
 import connection.Response;
 import connection.controllers.LoginController;
+import connection.controllers.QuitController;
 import connection.controllers.UpdateController;
 
 /**
@@ -94,6 +99,7 @@ public class Launcher extends JFrame {
 	
 	private String user_token;
 	private String user_name;
+	private LinkedHashMap<String, Integer> user_cards;
 	
 	private String game_token;
 	private int game_size;
@@ -224,6 +230,9 @@ public class Launcher extends JFrame {
 		this.remove(this.gameMenu);
 		this.add(this.gameBoard, BorderLayout.CENTER);
 		
+		this.user_cards = new LinkedHashMap<String, Integer>();
+		this.gameBoard.updateCards(this.user_cards);
+		
 		this.pack();
 		this.setVisible(true);
 		this.centerScreen();
@@ -244,6 +253,12 @@ public class Launcher extends JFrame {
 		} catch (IOException e) {
 		    e.printStackTrace();
 		}
+		
+		this.addWindowListener(new WindowAdapter() {
+		    public void windowClosing(WindowEvent e) {
+		    	quitGame();
+		    }
+		});
 	}
 	
 	/**
@@ -470,6 +485,47 @@ public class Launcher extends JFrame {
 	
 	public void updateMessage(int user_index, String user_name, String user_message) {
 		this.gameBoard.addMessage(user_index, user_name, user_message);
+	}
+	
+	public void updateCard(String card_method, String card_value) {
+		if(card_method.equals("add")) {
+			if(this.user_cards.containsKey(card_value)) {
+				Integer card_quantity = this.user_cards.get(card_value) + 1;
+				this.user_cards.put(card_value, card_quantity);
+			} else {
+				this.user_cards.put(card_value, 1);
+			}
+		} else if(card_method.equals("remove")) {
+			if(this.user_cards.containsKey(card_value)) {
+				Integer card_quantity = this.user_cards.get(card_value) - 1;
+				
+				if(card_quantity > 0) {
+					this.user_cards.put(card_value, card_quantity);
+				} else {
+					this.user_cards.remove(card_value);
+				}
+			}
+		}
+	}
+	
+	public void updateCards() {
+		this.gameBoard.updateCards(this.user_cards);
+	}
+	
+	public void removeSelectedCards() {
+		this.gameBoard.removeSelectedCards();
+	}
+	
+	public void quitGame() {
+		if(this.getUserToken() != null && this.getGameToken() != null) {
+			QuitController quitController = new QuitController(this, this.getUserToken(), this.getGameToken());
+			if(quitController.sendQuit()) {
+				System.out.println("QUIT SUCCESSFUL");
+			} else {
+				System.out.println("QUIT ERROR");
+				System.out.println("ERROR: " + quitController.getError());
+			}
+		}
 	}
 	
 	/**

@@ -45,6 +45,18 @@ public class MoveController {
 			HashMap<String, String> response_list = response.getResponse();
 			
 			if(response_list.get("status").equals("success")) {
+				if(response_list.containsKey("card_add")) {
+					MoveController.this.getLauncher().updateCard("add", response_list.get("card_add"));
+				}
+				
+				if(response_list.containsKey("card_remove")) {
+					MoveController.this.getLauncher().updateCard("remove", response_list.get("card_remove"));
+				}
+				
+				if(response_list.containsKey("card_add") || response_list.containsKey("card_remove")) {
+					MoveController.this.getLauncher().updateCards();
+				}
+				
 				return true;
 			} else {
 				this.error_message = response_list.get("error_message");
