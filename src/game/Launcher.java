@@ -374,6 +374,8 @@ public class Launcher extends JFrame {
 	
 	public void setUsername(String user_name) {
 		this.user_name = user_name;
+		
+		this.gameDashboard.setUsername(user_name);
 	}
 	
 	public void setGameToken(String game_token) {
