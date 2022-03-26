@@ -482,6 +482,16 @@ public class Launcher extends JFrame {
 					player.setLoseLabel();
 				}
 			}
+			
+			new java.util.Timer().schedule( 
+		        new java.util.TimerTask() {
+		            @Override
+		            public void run() {
+		                quitGame();
+		            }
+		        }, 
+		        5000 
+			);
 		}
 	}
 	
